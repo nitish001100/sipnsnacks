@@ -9,6 +9,7 @@ import {
   Flame,
   Loader2,
   RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -65,15 +66,33 @@ export default function KitchenPage() {
     }
   }, []);
 
+  // Trigger overdue email alert when overdue orders detected
+  const triggerAlert = useCallback(async () => {
+    try {
+      await fetch('/api/kitchen/alert');
+    } catch {
+      // silent
+    }
+  }, []);
+
   useEffect(() => {
     fetchOrders();
     fetchCompletedToday();
+    // Refresh orders every 5s
     const interval = setInterval(() => {
       fetchOrders();
       fetchCompletedToday();
     }, 5000);
-    return () => clearInterval(interval);
-  }, [fetchOrders, fetchCompletedToday]);
+    // Check for overdue alerts every 5 minutes
+    const alertInterval = setInterval(triggerAlert, 5 * 60 * 1000);
+    // Also check on first load after 10s
+    const initialAlert = setTimeout(triggerAlert, 10000);
+    return () => {
+      clearInterval(interval);
+      clearInterval(alertInterval);
+      clearTimeout(initialAlert);
+    };
+  }, [fetchOrders, fetchCompletedToday, triggerAlert]);
 
   const updateStatus = async (orderId: number, newStatus: string) => {
     setUpdatingId(orderId);
@@ -105,12 +124,20 @@ export default function KitchenPage() {
   const getDailyNum = (orderNumber: string) =>
     orderNumber.split('-').pop()?.replace(/^0+/, '') || '?';
 
+  const getMinutesSince = (createdAt: string) => {
+    return Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
+  };
+
   const getTimeSince = (createdAt: string) => {
     const diff = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000);
     if (diff < 60) return `${diff}s`;
     if (diff < 3600) return `${Math.floor(diff / 60)}m`;
     return `${Math.floor(diff / 3600)}h`;
   };
+
+  const isOverdue = (createdAt: string) => getMinutesSince(createdAt) >= 20;
+
+  const overdueCount = orders.filter((o) => o.status === 'pending' && isOverdue(o.created_at)).length;
 
   return (
     <div className="flex min-h-screen">
@@ -154,6 +181,21 @@ export default function KitchenPage() {
           </div>
         </div>
 
+        {/* Overdue Alert Banner */}
+        {overdueCount > 0 && (
+          <div className="mb-4 p-4 rounded-xl bg-red-50 border-2 border-red-300 flex items-center gap-3 animate-pulse">
+            <AlertTriangle className="w-6 h-6 text-red-600 shrink-0" />
+            <div>
+              <p className="text-red-800 font-bold text-sm">
+                🚨 {overdueCount} order(s) pending for over 20 minutes!
+              </p>
+              <p className="text-red-600 text-xs mt-0.5">
+                Email alert sent to admin · Please take action immediately
+              </p>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-10 h-10 animate-spin text-amber-500" />
@@ -168,20 +210,32 @@ export default function KitchenPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {[...pendingOrders, ...acceptedOrders].map((order) => {
               const isPending = order.status === 'pending';
+              const overdue = isPending && isOverdue(order.created_at);
+              const mins = getMinutesSince(order.created_at);
 
               return (
                 <div
                   key={order.id}
                   className={`rounded-xl border-2 overflow-hidden shadow-sm hover:shadow-md transition-all ${
-                    isPending
-                      ? 'border-yellow-400 bg-yellow-50/50'
-                      : 'border-orange-400 bg-orange-50/50'
+                    overdue
+                      ? 'border-red-500 bg-red-50/50 ring-2 ring-red-300 ring-offset-1'
+                      : isPending
+                        ? 'border-yellow-400 bg-yellow-50/50'
+                        : 'border-orange-400 bg-orange-50/50'
                   }`}
                 >
+                  {/* Overdue Warning */}
+                  {overdue && (
+                    <div className="bg-red-600 px-3 py-1.5 flex items-center gap-2 text-white animate-pulse">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span className="text-xs font-bold">⏰ OVERDUE — {mins}min waiting!</span>
+                    </div>
+                  )}
+
                   {/* Header */}
                   <div
                     className={`px-4 py-3 flex items-center justify-between ${
-                      isPending ? 'bg-yellow-400' : 'bg-orange-400'
+                      overdue ? 'bg-red-500' : isPending ? 'bg-yellow-400' : 'bg-orange-400'
                     }`}
                   >
                     <span className="text-2xl font-black text-white">
@@ -189,9 +243,9 @@ export default function KitchenPage() {
                     </span>
                     <div className="text-right">
                       <span className="text-white/90 text-xs font-semibold block">
-                        {isPending ? '🆕 NEW ORDER' : '🔥 COOKING'}
+                        {overdue ? '🚨 OVERDUE' : isPending ? '🆕 NEW ORDER' : '🔥 COOKING'}
                       </span>
-                      <span className="text-white/80 text-xs flex items-center gap-1 justify-end">
+                      <span className={`text-xs flex items-center gap-1 justify-end ${overdue ? 'text-white font-bold' : 'text-white/80'}`}>
                         <Clock className="w-3 h-3" />
                         {getTimeSince(order.created_at)} ago
                       </span>
