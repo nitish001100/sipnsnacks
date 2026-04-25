@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="32" fill="#1B2E3C"/>
+  <circle cx="32" cy="32" r="28" fill="#F5B041"/>
+  <!-- Coffee cup body -->
+  <rect x="20" y="24" width="18" height="16" rx="3" fill="#1B2E3C"/>
+  <!-- Cup handle -->
+  <path d="M38 28 C44 28, 44 36, 38 36" stroke="#1B2E3C" stroke-width="3" fill="none"/>
+  <!-- Steam lines -->
+  <path d="M25 22 Q26 18 25 14" stroke="#1B2E3C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M29 22 Q30 17 29 13" stroke="#1B2E3C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M33 22 Q34 18 33 14" stroke="#1B2E3C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Saucer -->
+  <ellipse cx="29" cy="42" rx="14" ry="3" fill="#1B2E3C"/>
+  <!-- SNS text -->
+  <text x="32" y="56" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" font-weight="bold" fill="#1B2E3C">SNS</text>
+</svg>
