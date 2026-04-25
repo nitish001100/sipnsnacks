@@ -20,13 +20,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // Set HTTP-only cookie
+    // Set HTTP-only auth cookie
     setAuthCookie(result.token);
 
-    return NextResponse.json({
+    // Set a readable role cookie for client-side nav rendering
+    const response = NextResponse.json({
       success: true,
       user: result.user,
     });
+
+    response.cookies.set('pos-user-role', result.user.role, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 86400,
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

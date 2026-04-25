@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -16,28 +16,45 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/menu', label: 'Menu', icon: UtensilsCrossed },
-  { href: '/checkout', label: 'Checkout', icon: ShoppingCart },
-  { href: '/kitchen', label: 'Kitchen', icon: ChefHat },
-  { href: '/reports', label: 'Reports', icon: BarChart3 },
+const allNavItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
+  { href: '/menu', label: 'Menu', icon: UtensilsCrossed, roles: ['admin'] },
+  { href: '/checkout', label: 'Checkout', icon: ShoppingCart, roles: ['admin'] },
+  { href: '/kitchen', label: 'Kitchen', icon: ChefHat, roles: ['admin', 'chef'] },
+  { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'] },
 ];
+
+function getUserRole(): string {
+  if (typeof document === 'undefined') return 'admin';
+  const match = document.cookie.match(/pos-user-role=([^;]+)/);
+  return match ? match[1] : 'admin';
+}
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [role, setRole] = useState('admin');
+
+  useEffect(() => {
+    setRole(getUserRole());
+  }, []);
+
+  const navItems = allNavItems.filter((item) => item.roles.includes(role));
 
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
+      // Clear role cookie
+      document.cookie = 'pos-user-role=; path=/; max-age=0';
       toast.success('Logged out successfully');
       router.push('/login');
     } catch {
       toast.error('Failed to logout');
     }
   };
+
+  const roleLabel = role === 'chef' ? 'Chef' : 'Admin';
 
   return (
     <>
@@ -54,8 +71,20 @@ export default function Navbar() {
           </div>
         </div>
 
+        {/* Role Badge */}
+        <div className="px-6 pt-4 pb-2">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+            role === 'chef'
+              ? 'bg-orange-500/20 text-orange-300'
+              : 'bg-amber-500/20 text-amber-300'
+          }`}>
+            {role === 'chef' ? <ChefHat className="w-3.5 h-3.5" /> : <LayoutDashboard className="w-3.5 h-3.5" />}
+            {roleLabel}
+          </span>
+        </div>
+
         {/* Nav Items */}
-        <nav className="flex-1 px-4 py-6 space-y-1">
+        <nav className="flex-1 px-4 py-4 space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
@@ -95,6 +124,9 @@ export default function Navbar() {
             <Image src="/logo.png" alt="SNS" width={32} height={32} className="w-full h-full object-contain" />
           </div>
           <span className="font-bold">Sip n Snacks</span>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+            role === 'chef' ? 'bg-orange-500/30 text-orange-300' : 'bg-amber-500/30 text-amber-300'
+          }`}>{roleLabel}</span>
         </div>
         <button onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -124,7 +156,17 @@ export default function Navbar() {
             <p className="text-xs text-amber-300/70">Cafe · Refreshments · Bites</p>
           </div>
         </div>
-        <nav className="px-4 py-6 space-y-1">
+        <div className="px-6 pt-4 pb-2">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+            role === 'chef'
+              ? 'bg-orange-500/20 text-orange-300'
+              : 'bg-amber-500/20 text-amber-300'
+          }`}>
+            {role === 'chef' ? <ChefHat className="w-3.5 h-3.5" /> : <LayoutDashboard className="w-3.5 h-3.5" />}
+            {roleLabel}
+          </span>
+        </div>
+        <nav className="px-4 py-4 space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
