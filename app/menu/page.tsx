@@ -56,7 +56,7 @@ export default function MenuPage() {
     }
   };
 
-  const categories = [...new Set(items.map((i) => i.category))].sort();
+  const categories = Array.from(new Set(items.map((i) => i.category))).sort();
 
   const filteredItems = items.filter((item) => {
     const matchSearch =

@@ -70,7 +70,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const categories = [...new Set(menuItems.map((i) => i.category))].sort();
+  const categories = Array.from(new Set(menuItems.map((i) => i.category))).sort();
 
   const filteredMenu = menuItems.filter((item) => {
     const matchSearch = item.name.toLowerCase().includes(search.toLowerCase());
