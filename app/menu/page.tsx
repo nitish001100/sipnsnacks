@@ -10,6 +10,10 @@ import {
   Loader2,
   Search,
   UtensilsCrossed,
+  Upload,
+  FileSpreadsheet,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -39,6 +43,10 @@ export default function MenuPage() {
   const [form, setForm] = useState<ItemForm>(emptyForm);
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [showCsvModal, setShowCsvModal] = useState(false);
+  const [csvData, setCsvData] = useState<{ name: string; category: string; price: string }[]>([]);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvResult, setCsvResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
 
   useEffect(() => {
     fetchItems();
@@ -160,13 +168,22 @@ export default function MenuPage() {
             <h1 className="text-2xl font-bold text-gray-900">Menu Management</h1>
             <p className="text-gray-500 mt-1">{items.length} items in menu</p>
           </div>
-          <button
-            onClick={openAddModal}
-            className="btn-primary flex items-center gap-2 mt-4 sm:mt-0"
-          >
-            <Plus className="w-5 h-5" />
-            Add Item
-          </button>
+          <div className="flex gap-3 mt-4 sm:mt-0">
+            <button
+              onClick={() => { setCsvData([]); setCsvResult(null); setShowCsvModal(true); }}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <Upload className="w-5 h-5" />
+              Bulk CSV
+            </button>
+            <button
+              onClick={openAddModal}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Add Item
+            </button>
+          </div>
         </div>
 
         {/* Search & Filter */}
@@ -346,6 +363,174 @@ export default function MenuPage() {
                   {editingId ? 'Update' : 'Add Item'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* CSV Bulk Upload Modal */}
+        {showCsvModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => !csvUploading && setShowCsvModal(false)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                  Bulk CSV Upload
+                </h2>
+                <button onClick={() => !csvUploading && setShowCsvModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm">
+                <p className="font-medium text-blue-800 mb-1">CSV Format (3 columns):</p>
+                <code className="text-blue-700 text-xs bg-blue-100 px-2 py-1 rounded block">Item,Category,Price</code>
+                <p className="text-blue-600 text-xs mt-1">First row can be a header (auto-detected). Example:</p>
+                <pre className="text-blue-600 text-xs mt-1 bg-blue-100 p-2 rounded">
+{`Masala Chai,Beverages,30
+Samosa,Snacks,20
+Paneer Tikka,Starters,180`}
+                </pre>
+              </div>
+
+              {/* File Input */}
+              {!csvResult && (
+                <>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    id="csv-upload"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const text = ev.target?.result as string;
+                        const lines = text.split('\n').map((l) => l.trim()).filter((l) => l);
+                        const parsed: { name: string; category: string; price: string }[] = [];
+                        for (let i = 0; i < lines.length; i++) {
+                          const cols = lines[i].split(',').map((c) => c.trim());
+                          if (cols.length < 3) continue;
+                          // Skip header row
+                          if (i === 0 && (cols[0].toLowerCase() === 'item' || cols[0].toLowerCase() === 'name')) continue;
+                          parsed.push({ name: cols[0], category: cols[1], price: cols[2] });
+                        }
+                        setCsvData(parsed);
+                      };
+                      reader.readAsText(file);
+                      e.target.value = '';
+                    }}
+                  />
+                  <label
+                    htmlFor="csv-upload"
+                    className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-green-400 hover:bg-green-50 transition-all mb-4"
+                  >
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Click to select CSV file</p>
+                    <p className="text-xs text-gray-400">or drag & drop</p>
+                  </label>
+                </>
+              )}
+
+              {/* Preview */}
+              {csvData.length > 0 && !csvResult && (
+                <>
+                  <div className="mb-3">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">
+                      Preview ({csvData.length} items):
+                    </p>
+                    <div className="border rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 sticky top-0">
+                          <tr>
+                            <th className="text-left px-3 py-2 text-gray-600">#</th>
+                            <th className="text-left px-3 py-2 text-gray-600">Item</th>
+                            <th className="text-left px-3 py-2 text-gray-600">Category</th>
+                            <th className="text-right px-3 py-2 text-gray-600">Price</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {csvData.map((row, idx) => (
+                            <tr key={idx} className="border-t">
+                              <td className="px-3 py-1.5 text-gray-400">{idx + 1}</td>
+                              <td className="px-3 py-1.5 font-medium">{row.name}</td>
+                              <td className="px-3 py-1.5 text-gray-600">{row.category}</td>
+                              <td className="px-3 py-1.5 text-right">₹{row.price}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => setCsvData([])} className="btn-secondary flex-1">Clear</button>
+                    <button
+                      onClick={async () => {
+                        setCsvUploading(true);
+                        try {
+                          const res = await fetch('/api/menu/bulk', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ items: csvData }),
+                          });
+                          const data = await res.json();
+                          setCsvResult({ success: data.success, failed: data.failed, errors: data.errors || [] });
+                          if (data.success > 0) {
+                            toast.success(`${data.success} items added!`);
+                            fetchItems();
+                          }
+                          if (data.failed > 0) {
+                            toast.error(`${data.failed} items failed`);
+                          }
+                        } catch {
+                          toast.error('Upload failed');
+                        } finally {
+                          setCsvUploading(false);
+                        }
+                      }}
+                      disabled={csvUploading}
+                      className="btn-primary flex-1 flex items-center justify-center gap-2"
+                    >
+                      {csvUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      {csvUploading ? 'Uploading...' : `Upload ${csvData.length} Items`}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Result */}
+              {csvResult && (
+                <div className="space-y-3">
+                  <div className="flex gap-4">
+                    {csvResult.success > 0 && (
+                      <div className="flex-1 bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                        <CheckCircle2 className="w-6 h-6 text-green-500 mx-auto mb-1" />
+                        <p className="text-2xl font-bold text-green-700">{csvResult.success}</p>
+                        <p className="text-xs text-green-600">Added</p>
+                      </div>
+                    )}
+                    {csvResult.failed > 0 && (
+                      <div className="flex-1 bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                        <AlertCircle className="w-6 h-6 text-red-500 mx-auto mb-1" />
+                        <p className="text-2xl font-bold text-red-700">{csvResult.failed}</p>
+                        <p className="text-xs text-red-600">Failed</p>
+                      </div>
+                    )}
+                  </div>
+                  {csvResult.errors.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-h-32 overflow-y-auto">
+                      <p className="text-xs font-semibold text-red-700 mb-1">Errors:</p>
+                      {csvResult.errors.map((err, i) => (
+                        <p key={i} className="text-xs text-red-600">{err}</p>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={() => { setShowCsvModal(false); setCsvData([]); setCsvResult(null); }} className="btn-primary w-full">
+                    Done
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
