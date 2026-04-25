@@ -35,10 +35,11 @@ export default function KitchenPage() {
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [completedToday, setCompletedToday] = useState<KitchenOrder[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await fetch('/api/kitchen');
+      const res = await fetch('/api/kitchen', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setOrders(data.orders);
@@ -54,7 +55,7 @@ export default function KitchenPage() {
   const fetchCompletedToday = useCallback(async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const res = await fetch(`/api/orders?date=${today}&limit=100`);
+      const res = await fetch(`/api/orders?date=${today}&limit=100`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setCompletedToday(
@@ -65,6 +66,13 @@ export default function KitchenPage() {
       // silent
     }
   }, []);
+
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchOrders(), fetchCompletedToday()]);
+    setRefreshing(false);
+    toast.success('🔄 Refreshed!', { duration: 1000 });
+  };
 
   // Trigger overdue email alert when overdue orders detected
   const triggerAlert = useCallback(async () => {
@@ -173,10 +181,11 @@ export default function KitchenPage() {
               </span>
             </div>
             <button
-              onClick={() => { fetchOrders(); fetchCompletedToday(); }}
-              className="p-2 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+              onClick={handleManualRefresh}
+              disabled={refreshing}
+              className="p-2 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors disabled:opacity-50"
             >
-              <RefreshCw className="w-5 h-5" />
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
