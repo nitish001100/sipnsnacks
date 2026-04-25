@@ -256,7 +256,7 @@ export default function KitchenPage() {
                     </span>
                     <div className="text-right">
                       <span className="text-white/90 text-xs font-semibold block">
-                        {overdue ? '🚨 OVERDUE' : isPending ? '🆕 NEW ORDER' : '🔥 COOKING'}
+                        {overdue ? '🚨 OVERDUE' : isPending ? '⌚ NEW ORDER' : '🔥 COOKING'}
                       </span>
                       <span className={`text-xs flex items-center gap-1 justify-end ${overdue ? 'text-white font-bold' : 'text-white/80'}`}>
                         <Clock className="w-3 h-3" />

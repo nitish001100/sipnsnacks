@@ -363,7 +363,7 @@ export default function DashboardPage() {
                       <Clock className="w-5 h-5" />
                     </div>
                     <p className="text-3xl font-black text-yellow-700">{stats.statusCounts.pending}</p>
-                    <p className="text-xs font-medium text-yellow-600 mt-1">🆕 Pending</p>
+                    <p className="text-xs font-medium text-yellow-600 mt-1">⌚ Pending</p>
                     <p className="text-[10px] text-yellow-500">Waiting for kitchen</p>
                   </div>
                   <div className="rounded-xl bg-orange-50 border-2 border-orange-200 p-4 text-center">
