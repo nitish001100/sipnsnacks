@@ -45,8 +45,8 @@ export default function Navbar() {
       <aside className="hidden md:flex md:flex-col md:w-64 bg-[#1B2E3C] text-white min-h-screen fixed left-0 top-0 z-40">
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-[#2a4a5c]">
-          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#F5B041]">
-            <Image src="/logo.png" alt="Sip n Snacks" width={40} height={40} className="object-cover" />
+          <div className="w-11 h-11 shrink-0 rounded-full overflow-hidden bg-white">
+            <Image src="/logo.png" alt="Sip n Snacks" width={44} height={44} className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-lg font-bold">Sip n Snacks</h1>
@@ -91,8 +91,8 @@ export default function Navbar() {
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#1B2E3C] text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full overflow-hidden border border-[#F5B041]">
-            <Image src="/logo.png" alt="SNS" width={28} height={28} className="object-cover" />
+          <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden bg-white">
+            <Image src="/logo.png" alt="SNS" width={32} height={32} className="w-full h-full object-contain" />
           </div>
           <span className="font-bold">Sip n Snacks</span>
         </div>
@@ -116,8 +116,8 @@ export default function Navbar() {
         }`}
       >
         <div className="flex items-center gap-3 px-6 py-5 border-b border-[#2a4a5c]">
-          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#F5B041]">
-            <Image src="/logo.png" alt="Sip n Snacks" width={40} height={40} className="object-cover" />
+          <div className="w-11 h-11 shrink-0 rounded-full overflow-hidden bg-white">
+            <Image src="/logo.png" alt="Sip n Snacks" width={44} height={44} className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-lg font-bold">Sip n Snacks</h1>
