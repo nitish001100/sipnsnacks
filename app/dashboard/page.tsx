@@ -360,91 +360,8 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Two Column: Recent Orders + Top Items */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {/* Recent Orders */}
-              {stats && (
-                <div className="card">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <ShoppingBag className="w-5 h-5 text-amber-600" />
-                    Recent Orders
-                  </h2>
-                  {stats.recentOrders.length === 0 ? (
-                    <p className="text-gray-400 text-sm text-center py-8">No orders yet today</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {stats.recentOrders.map((order) => (
-                        <div key={order.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <span className="text-lg font-bold text-gray-800">
-                              #{getDailyNum(order.order_number)}
-                            </span>
-                            <div>
-                              {getStatusBadge(order.status)}
-                              <p className="text-[11px] text-gray-400 mt-0.5">
-                                {new Date(order.created_at).toLocaleTimeString('en-IN', {
-                                  hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
-                                })} · {order.item_count} items
-                              </p>
-                            </div>
-                          </div>
-                          <span className="font-bold text-gray-800 text-sm">
-                            ₹{order.total_amount.toLocaleString('en-IN')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Top Selling Items */}
-              {stats && (
-                <div className="card">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-amber-600" />
-                    Top Selling Items Today
-                  </h2>
-                  {stats.topItems.length === 0 ? (
-                    <p className="text-gray-400 text-sm text-center py-8">No sales yet today</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {stats.topItems.map((item, idx) => {
-                        const maxQty = stats.topItems[0].total_qty;
-                        const barWidth = (item.total_qty / maxQty) * 100;
-                        return (
-                          <div key={item.item_name} className="flex items-center gap-3">
-                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                              idx === 0 ? 'bg-amber-400 text-white' :
-                              idx === 1 ? 'bg-gray-300 text-white' :
-                              idx === 2 ? 'bg-orange-300 text-white' :
-                              'bg-gray-100 text-gray-500'
-                            }`}>
-                              {idx + 1}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between mb-1">
-                                <span className="text-sm font-medium text-gray-800 truncate">{item.item_name}</span>
-                                <span className="text-xs text-gray-500 shrink-0 ml-2">{item.total_qty} sold</span>
-                              </div>
-                              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-amber-400 rounded-full transition-all duration-500"
-                                  style={{ width: `${barWidth}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Quick Actions */}
-            <div className="card">
+            <div className="card mb-6">
               <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <a href="/checkout" className="flex items-center gap-3 p-4 rounded-lg border-2 border-dashed border-gray-200 hover:border-amber-400 hover:bg-amber-50 transition-all">
@@ -476,6 +393,75 @@ export default function DashboardPage() {
                   </div>
                 </a>
               </div>
+            </div>
+
+            {/* Two Column: Recent Orders + Top Items */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Orders */}
+              {stats && (
+                <div className="card">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <ShoppingBag className="w-5 h-5 text-amber-600" />
+                    Recent Orders
+                  </h2>
+                  {stats.recentOrders.length === 0 ? (
+                    <p className="text-gray-400 text-sm text-center py-8">No orders yet today</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {stats.recentOrders.map((order) => (
+                        <div key={order.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg font-bold text-gray-800">#{getDailyNum(order.order_number)}</span>
+                            <div>
+                              {getStatusBadge(order.status)}
+                              <p className="text-[11px] text-gray-400 mt-0.5">
+                                {new Date(order.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })} · {order.item_count} items
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-bold text-gray-800 text-sm">₹{order.total_amount.toLocaleString('en-IN')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Top Selling Items */}
+              {stats && (
+                <div className="card">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-amber-600" />
+                    Top Selling Items Today
+                  </h2>
+                  {stats.topItems.length === 0 ? (
+                    <p className="text-gray-400 text-sm text-center py-8">No sales yet today</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {stats.topItems.map((item, idx) => {
+                        const maxQty = stats.topItems[0].total_qty;
+                        const barWidth = (item.total_qty / maxQty) * 100;
+                        return (
+                          <div key={item.item_name} className="flex items-center gap-3">
+                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                              idx === 0 ? 'bg-amber-400 text-white' : idx === 1 ? 'bg-gray-300 text-white' : idx === 2 ? 'bg-orange-300 text-white' : 'bg-gray-100 text-gray-500'
+                            }`}>{idx + 1}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-800 truncate">{item.item_name}</span>
+                                <span className="text-xs text-gray-500 shrink-0 ml-2">{item.total_qty} sold</span>
+                              </div>
+                              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-amber-400 rounded-full transition-all duration-500" style={{ width: `${barWidth}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}

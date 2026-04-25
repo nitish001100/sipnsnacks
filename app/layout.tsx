@@ -5,6 +5,10 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Sip n Snacks - Cafe POS',
   description: 'Sip n Snacks - Cafe, Refreshments & Bites. Point of Sale management system.',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({
