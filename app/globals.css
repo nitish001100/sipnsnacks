@@ -229,6 +229,33 @@ body {
 }
 
 /* Footer */
+.bill-feedback {
+  text-align: center;
+  padding: 10px 0 6px;
+}
+.bill-feedback-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 6px;
+}
+.bill-qr-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0;
+}
+.bill-qr {
+  width: 80px;
+  height: 80px;
+  border: 2px solid #eee;
+  border-radius: 4px;
+}
+.bill-feedback-sub {
+  font-size: 9px;
+  color: #888;
+  margin-top: 4px;
+}
+
 .bill-footer {
   text-align: center;
   margin-top: 8px;

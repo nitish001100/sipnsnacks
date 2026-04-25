@@ -74,9 +74,6 @@ export default function BillTemplate({ order }: BillTemplateProps) {
             <span className="bill-label">{formattedTime}</span>
           </div>
         </div>
-        <div className="bill-ref">
-          <span className="bill-label">Ref: {order.order_number}</span>
-        </div>
 
         {/* Divider */}
         <div className="bill-divider" />
@@ -125,6 +122,26 @@ export default function BillTemplate({ order }: BillTemplateProps) {
           <span>₹{order.total_amount.toLocaleString('en-IN')}</span>
         </div>
         <div className="bill-divider bill-divider-double" />
+
+        {/* Feedback QR Code */}
+        <div className="bill-feedback">
+          <p className="bill-feedback-title">Rate your experience!</p>
+          <div className="bill-qr-wrap">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(
+                process.env.NEXT_PUBLIC_FEEDBACK_URL || 'https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review'
+              )}`}
+              alt="Scan for feedback"
+              width={80}
+              height={80}
+              className="bill-qr"
+            />
+          </div>
+          <p className="bill-feedback-sub">Scan to give us feedback on Google</p>
+        </div>
+
+        <div className="bill-divider" />
 
         {/* Footer */}
         <div className="bill-footer">
