@@ -168,40 +168,40 @@ export default function MenuPage() {
             <h1 className="text-2xl font-bold text-gray-900">Menu Management</h1>
             <p className="text-gray-500 mt-1">{items.length} items in menu</p>
           </div>
-          <div className="flex gap-3 mt-4 sm:mt-0">
+          <div className="flex gap-2 mt-4 sm:mt-0">
             <button
               onClick={() => { setCsvData([]); setCsvResult(null); setShowCsvModal(true); }}
-              className="btn-secondary flex items-center gap-2"
+              className="btn-secondary flex items-center gap-2 text-sm"
             >
-              <Upload className="w-5 h-5" />
+              <Upload className="w-4 h-4" />
               Bulk CSV
             </button>
             <button
               onClick={openAddModal}
-              className="btn-primary flex items-center gap-2"
+              className="btn-primary flex items-center gap-2 text-sm"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
               Add Item
             </button>
           </div>
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search items..."
-              className="input pl-10"
+              className="input pl-9 py-2 text-sm"
             />
           </div>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="input w-full sm:w-48"
+            className="input w-full sm:w-40 py-2 text-sm"
           >
             <option value="">All Categories</option>
             {categories.map((cat) => (
@@ -226,42 +226,35 @@ export default function MenuPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {filteredItems.map((item) => (
               <div
                 key={item.id}
-                className={`card hover:shadow-md transition-all ${
-                  !item.available ? 'opacity-60' : ''
+                className={`p-3 rounded-xl border-2 bg-white hover:shadow-md transition-all ${
+                  !item.available ? 'opacity-50 border-gray-200' : 'border-gray-100 hover:border-amber-200'
                 }`}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                    <span className="badge-blue mt-1">{item.category}</span>
-                  </div>
-                  <span
-                    className={item.available ? 'badge-green' : 'badge-red'}
-                  >
-                    {item.available ? 'Available' : 'Unavailable'}
-                  </span>
+                <div className="flex items-start justify-between mb-1.5">
+                  <h3 className="font-medium text-gray-900 text-sm leading-tight">{item.name}</h3>
+                  <span className={`shrink-0 ml-1 w-2 h-2 rounded-full mt-1.5 ${item.available ? 'bg-green-500' : 'bg-red-400'}`} />
                 </div>
-                <p className="text-2xl font-bold text-gray-900 mb-4">
-                  ₹{item.price.toLocaleString('en-IN')}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => openEditModal(item)}
-                    className="btn-secondary flex-1 flex items-center justify-center gap-1 text-sm py-2"
-                  >
-                    <Pencil className="w-4 h-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id, item.name)}
-                    className="btn-danger flex items-center justify-center gap-1 text-sm py-2 px-3"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <p className="text-xs text-gray-500 mb-2">{item.category}</p>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-gray-900">₹{item.price}</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => openEditModal(item)}
+                      className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-amber-100 text-gray-500 hover:text-amber-700 flex items-center justify-center transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id, item.name)}
+                      className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 flex items-center justify-center transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
