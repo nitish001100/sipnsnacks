@@ -20,6 +20,8 @@ import {
   ChefHat,
   ArrowRight,
   Trophy,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -73,6 +75,10 @@ export default function DashboardPage() {
   const [settlePassword, setSettlePassword] = useState('');
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [showItemsModal, setShowItemsModal] = useState(false);
+  const [resetModal, setResetModal] = useState(false);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState('');
   const today = format(new Date(), 'yyyy-MM-dd');
 
   const fetchDashboard = useCallback(async () => {
@@ -159,6 +165,38 @@ export default function DashboardPage() {
     toast.success('Downloading Excel report...');
   };
 
+  const handleReset = async () => {
+    if (!resetPassword) return;
+    if (resetConfirm !== 'RESET') {
+      toast.error('Type RESET to confirm');
+      return;
+    }
+    setResetting(true);
+    try {
+      const res = await fetch('/api/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: resetPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || 'All data reset!');
+        setResetModal(false);
+        setResetPassword('');
+        setResetConfirm('');
+        setEarningsUnlocked(false);
+        setAllTime(null);
+        fetchDashboard();
+      } else {
+        toast.error(data.error || 'Reset failed');
+      }
+    } catch {
+      toast.error('Reset failed');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const getDailyNum = (orderNumber: string) =>
     orderNumber.split('-').pop()?.replace(/^0+/, '') || '?';
 
@@ -207,7 +245,7 @@ export default function DashboardPage() {
               {format(new Date(), 'EEEE, MMMM d, yyyy')}
             </p>
           </div>
-          <div className="flex gap-3 mt-4 sm:mt-0">
+          <div className="flex gap-2 mt-4 sm:mt-0 flex-wrap">
             <button onClick={handleExport} className="btn-secondary flex items-center gap-2 text-sm">
               <Download className="w-4 h-4" /> Export
             </button>
@@ -216,6 +254,12 @@ export default function DashboardPage() {
               className="bg-[#1B2E3C] hover:bg-[#2a4a5c] text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm"
             >
               <Mail className="w-4 h-4" /> Settle Day
+            </button>
+            <button
+              onClick={() => { setResetPassword(''); setResetConfirm(''); setResetModal(true); }}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm"
+            >
+              <Trash2 className="w-4 h-4" /> Reset Data
             </button>
           </div>
         </div>
@@ -573,6 +617,55 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Data Reset Modal */}
+      {resetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => !resetting && setResetModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
+                <AlertTriangle className="w-7 h-7 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">⚠️ Reset All Data</h3>
+              <p className="text-sm text-gray-500 mt-1">This will permanently delete ALL orders & sales data</p>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-xs text-red-700">
+              <p className="font-semibold mb-1">This action will:</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>Delete all orders</li>
+                <li>Delete all order items</li>
+                <li>Reset all sales & revenue to 0</li>
+                <li>This cannot be undone!</li>
+              </ul>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); handleReset(); }}>
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Settlement Password</label>
+                  <input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)}
+                    placeholder="Enter password" className="input" autoFocus />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Type <code className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-mono font-bold">RESET</code> to confirm
+                  </label>
+                  <input type="text" value={resetConfirm} onChange={(e) => setResetConfirm(e.target.value)}
+                    placeholder="Type RESET" className="input" />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => { setResetModal(false); setResetPassword(''); setResetConfirm(''); }}
+                  className="btn-secondary flex-1" disabled={resetting}>Cancel</button>
+                <button type="submit" disabled={resetting || !resetPassword || resetConfirm !== 'RESET'}
+                  className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex-1 flex items-center justify-center gap-2 disabled:opacity-50">
+                  {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  {resetting ? 'Resetting...' : 'Reset All Data'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
