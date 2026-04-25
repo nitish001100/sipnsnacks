@@ -128,7 +128,7 @@ export default function BillTemplate({ order }: BillTemplateProps) {
 
         {/* Footer */}
         <div className="bill-footer">
-          <p className="bill-thanks">Thank you! Visit again ☕</p>
+          <p className="bill-thanks">Thank you! Visit again</p>
           <p className="bill-powered">sipnsnacks.vercel.app</p>
         </div>
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   LayoutDashboard,
   UtensilsCrossed,
@@ -12,7 +13,6 @@ import {
   LogOut,
   Menu,
   X,
-  Coffee,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -45,8 +45,8 @@ export default function Navbar() {
       <aside className="hidden md:flex md:flex-col md:w-64 bg-[#1B2E3C] text-white min-h-screen fixed left-0 top-0 z-40">
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-[#2a4a5c]">
-          <div className="w-10 h-10 rounded-full bg-[#F5B041] flex items-center justify-center">
-            <Coffee className="w-5 h-5 text-[#1B2E3C]" />
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#F5B041]">
+            <Image src="/logo.png" alt="Sip n Snacks" width={40} height={40} className="object-cover" />
           </div>
           <div>
             <h1 className="text-lg font-bold">Sip n Snacks</h1>
@@ -91,8 +91,8 @@ export default function Navbar() {
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#1B2E3C] text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-[#F5B041] flex items-center justify-center">
-            <Coffee className="w-4 h-4 text-[#1B2E3C]" />
+          <div className="w-7 h-7 rounded-full overflow-hidden border border-[#F5B041]">
+            <Image src="/logo.png" alt="SNS" width={28} height={28} className="object-cover" />
           </div>
           <span className="font-bold">Sip n Snacks</span>
         </div>
@@ -116,8 +116,8 @@ export default function Navbar() {
         }`}
       >
         <div className="flex items-center gap-3 px-6 py-5 border-b border-[#2a4a5c]">
-          <div className="w-10 h-10 rounded-full bg-[#F5B041] flex items-center justify-center">
-            <Coffee className="w-5 h-5 text-[#1B2E3C]" />
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#F5B041]">
+            <Image src="/logo.png" alt="Sip n Snacks" width={40} height={40} className="object-cover" />
           </div>
           <div>
             <h1 className="text-lg font-bold">Sip n Snacks</h1>
