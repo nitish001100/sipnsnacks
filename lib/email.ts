@@ -21,7 +21,7 @@ export async function sendSettlementEmail(to: string, data: SettlementData) {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff;">
       <div style="background: #1B2E3C; padding: 24px; text-align: center; border-radius: 12px 12px 0 0;">
-        <h1 style="color: #F5B041; margin: 0; font-size: 28px;">☕ Sip n Snacks</h1>
+        <h1 style="color: #F5B041; margin: 0; font-size: 28px;">☕Sip n Snacks</h1>
         <p style="color: #fde68a; margin: 4px 0 0; font-size: 12px; letter-spacing: 2px;">CAFE · REFRESHMENTS · BITES</p>
       </div>
       
