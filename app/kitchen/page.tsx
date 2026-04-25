@@ -12,6 +12,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useHideMoney } from '@/hooks/useHideMoney';
+import HideMoneyToggle from '@/components/HideMoneyToggle';
 
 interface OrderItem {
   item_name: string;
@@ -36,6 +38,7 @@ export default function KitchenPage() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [completedToday, setCompletedToday] = useState<KitchenOrder[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const { hidden, toggle, mask } = useHideMoney();
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -180,6 +183,7 @@ export default function KitchenPage() {
                 {completedToday.length} Done
               </span>
             </div>
+            <HideMoneyToggle hidden={hidden} toggle={toggle} />
             <button
               onClick={handleManualRefresh}
               disabled={refreshing}
@@ -291,7 +295,7 @@ export default function KitchenPage() {
                         {order.items.reduce((s, i) => s + i.quantity, 0)} items
                       </span>
                       <span className="text-gray-900 font-bold">
-                        ₹{order.total_amount.toLocaleString('en-IN')}
+                        {mask(order.total_amount)}
                       </span>
                     </div>
 
@@ -359,7 +363,7 @@ export default function KitchenPage() {
                     ))}
                   </div>
                   <p className="text-gray-700 text-xs mt-2 font-bold">
-                    ₹{order.total_amount}
+                    {mask(order.total_amount)}
                   </p>
                 </div>
               ))}

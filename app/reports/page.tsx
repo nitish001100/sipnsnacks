@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format, subDays, addDays } from 'date-fns';
+import { useHideMoney } from '@/hooks/useHideMoney';
+import HideMoneyToggle from '@/components/HideMoneyToggle';
 
 interface DailySummary {
   date: string;
@@ -50,6 +52,7 @@ export default function ReportsPage() {
   const [passwordModal, setPasswordModal] = useState(false);
   const [password, setPassword] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const { hidden: moneyHidden, toggle: moneyToggle, mask } = useHideMoney();
 
   useEffect(() => {
     fetchData();
@@ -124,6 +127,7 @@ export default function ReportsPage() {
             <p className="text-gray-500 mt-1">View daily sales and transactions</p>
           </div>
           <div className="flex gap-3 mt-4 sm:mt-0">
+            <HideMoneyToggle hidden={moneyHidden} toggle={moneyToggle} />
             {earningsUnlocked && (
               <button
                 onClick={() => setEarningsUnlocked(false)}
@@ -189,7 +193,7 @@ export default function ReportsPage() {
                     <p className="text-sm text-gray-500">Revenue</p>
                     {earningsUnlocked ? (
                       <p className="text-xl font-bold text-green-700">
-                        ₹{(summary?.total_revenue || 0).toLocaleString('en-IN')}
+                        {mask(summary?.total_revenue || 0)}
                       </p>
                     ) : (
                       <button
@@ -283,7 +287,7 @@ export default function ReportsPage() {
                             </td>
                             <td className="px-4 py-3 text-right font-medium">
                               {earningsUnlocked ? (
-                                `₹${order.total_amount.toLocaleString('en-IN')}`
+                                mask(order.total_amount)
                               ) : (
                                 <span className="text-gray-400">🔒</span>
                               )}
@@ -309,7 +313,7 @@ export default function ReportsPage() {
                                         {item.item_name} × {item.quantity}
                                       </span>
                                       <span className="font-medium">
-                                        {earningsUnlocked ? `₹${item.subtotal}` : '🔒'}
+                                        {earningsUnlocked ? mask(item.subtotal) : '🔒'}
                                       </span>
                                     </div>
                                   ))}

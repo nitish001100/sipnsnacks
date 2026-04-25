@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { useHideMoney } from '@/hooks/useHideMoney';
+import HideMoneyToggle from '@/components/HideMoneyToggle';
 
 interface DailySummary {
   date: string;
@@ -80,6 +82,7 @@ export default function DashboardPage() {
   const [resetting, setResetting] = useState(false);
   const [resetConfirm, setResetConfirm] = useState('');
   const today = format(new Date(), 'yyyy-MM-dd');
+  const { hidden: moneyHidden, toggle: moneyToggle, mask } = useHideMoney();
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -245,7 +248,8 @@ export default function DashboardPage() {
               {format(new Date(), 'EEEE, MMMM d, yyyy')}
             </p>
           </div>
-          <div className="flex gap-2 mt-4 sm:mt-0 flex-wrap">
+          <div className="flex gap-2 mt-4 sm:mt-0 flex-wrap items-center">
+            <HideMoneyToggle hidden={moneyHidden} toggle={moneyToggle} />
             <button onClick={handleExport} className="btn-secondary flex items-center gap-2 text-sm">
               <Download className="w-4 h-4" /> Export
             </button>
@@ -278,7 +282,7 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-500 font-medium">Today&apos;s Revenue</p>
                     {earningsUnlocked ? (
                       <p className="text-2xl font-bold mt-1 text-green-700">
-                        ₹{summary?.total_revenue.toLocaleString('en-IN')}
+                        {mask(summary?.total_revenue ?? 0)}
                       </p>
                     ) : (
                       <button onClick={() => setPasswordModal(true)} className="flex items-center gap-1.5 mt-1 text-gray-400 hover:text-amber-600 transition-colors">
@@ -318,7 +322,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-sm text-gray-500 font-medium">All-Time Revenue</p>
                     {earningsUnlocked && allTime ? (
-                      <p className="text-2xl font-bold mt-1 text-orange-700">₹{allTime.total_revenue.toLocaleString('en-IN')}</p>
+                      <p className="text-2xl font-bold mt-1 text-orange-700">{mask(allTime.total_revenue)}</p>
                     ) : (
                       <button onClick={() => setPasswordModal(true)} className="flex items-center gap-1.5 mt-1 text-gray-400 hover:text-amber-600 transition-colors">
                         <Lock className="w-4 h-4" /><span className="text-sm font-medium">Tap to unlock</span>
@@ -471,7 +475,7 @@ export default function DashboardPage() {
                               </p>
                             </div>
                           </div>
-                          <span className="font-bold text-gray-800 text-sm">₹{order.total_amount.toLocaleString('en-IN')}</span>
+                          <span className="font-bold text-gray-800 text-sm">{mask(order.total_amount)}</span>
                         </div>
                       ))}
                     </div>
@@ -572,7 +576,7 @@ export default function DashboardPage() {
                         </p>
                       </div>
                     </div>
-                    <span className="font-bold text-gray-800">₹{order.total_amount.toLocaleString('en-IN')}</span>
+                    <span className="font-bold text-gray-800">{mask(order.total_amount)}</span>
                   </div>
                 ))}
               </div>
@@ -607,13 +611,13 @@ export default function DashboardPage() {
                     <span className="col-span-1 text-sm text-gray-400 font-medium">{idx + 1}</span>
                     <span className="col-span-6 text-sm font-medium text-gray-800">{item.item_name}</span>
                     <span className="col-span-2 text-sm text-right font-bold text-purple-700">{item.total_qty}</span>
-                    <span className="col-span-3 text-sm text-right text-gray-600">₹{item.total_revenue.toLocaleString('en-IN')}</span>
+                    <span className="col-span-3 text-sm text-right text-gray-600">{mask(item.total_revenue)}</span>
                   </div>
                 ))}
                 <div className="grid grid-cols-12 gap-2 pt-2 border-t mt-2 font-bold text-sm">
                   <span className="col-span-7 text-gray-700">Total</span>
                   <span className="col-span-2 text-right text-purple-700">{stats.topItems.reduce((s, i) => s + i.total_qty, 0)}</span>
-                  <span className="col-span-3 text-right text-gray-800">₹{stats.topItems.reduce((s, i) => s + i.total_revenue, 0).toLocaleString('en-IN')}</span>
+                  <span className="col-span-3 text-right text-gray-800">{mask(stats.topItems.reduce((s, i) => s + i.total_revenue, 0))}</span>
                 </div>
               </div>
             )}
