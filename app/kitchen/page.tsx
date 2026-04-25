@@ -38,7 +38,7 @@ export default function KitchenPage() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [completedToday, setCompletedToday] = useState<KitchenOrder[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const { hidden, toggle, mask } = useHideMoney();
+  const { hidden, show, hide, mask, isChef } = useHideMoney();
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -183,7 +183,7 @@ export default function KitchenPage() {
                 {completedToday.length} Done
               </span>
             </div>
-            <HideMoneyToggle hidden={hidden} toggle={toggle} />
+            <HideMoneyToggle hidden={hidden} show={show} hide={hide} isChef={isChef} />
             <button
               onClick={handleManualRefresh}
               disabled={refreshing}

@@ -82,7 +82,7 @@ export default function DashboardPage() {
   const [resetting, setResetting] = useState(false);
   const [resetConfirm, setResetConfirm] = useState('');
   const today = format(new Date(), 'yyyy-MM-dd');
-  const { hidden: moneyHidden, toggle: moneyToggle, mask } = useHideMoney();
+  const { hidden: moneyHidden, show: moneyShow, hide: moneyHide, mask, isChef } = useHideMoney();
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -249,7 +249,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex gap-2 mt-4 sm:mt-0 flex-wrap items-center">
-            <HideMoneyToggle hidden={moneyHidden} toggle={moneyToggle} />
+            <HideMoneyToggle hidden={moneyHidden} show={moneyShow} hide={moneyHide} isChef={isChef} />
             <button onClick={handleExport} className="btn-secondary flex items-center gap-2 text-sm">
               <Download className="w-4 h-4" /> Export
             </button>

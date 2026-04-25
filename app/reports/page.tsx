@@ -52,7 +52,7 @@ export default function ReportsPage() {
   const [passwordModal, setPasswordModal] = useState(false);
   const [password, setPassword] = useState('');
   const [verifying, setVerifying] = useState(false);
-  const { hidden: moneyHidden, toggle: moneyToggle, mask } = useHideMoney();
+  const { hidden: moneyHidden, show: moneyShow, hide: moneyHide, mask, isChef } = useHideMoney();
 
   useEffect(() => {
     fetchData();
@@ -127,7 +127,7 @@ export default function ReportsPage() {
             <p className="text-gray-500 mt-1">View daily sales and transactions</p>
           </div>
           <div className="flex gap-3 mt-4 sm:mt-0">
-            <HideMoneyToggle hidden={moneyHidden} toggle={moneyToggle} />
+            <HideMoneyToggle hidden={moneyHidden} show={moneyShow} hide={moneyHide} isChef={isChef} />
             {earningsUnlocked && (
               <button
                 onClick={() => setEarningsUnlocked(false)}
