@@ -111,12 +111,15 @@ export async function createOrder(
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
 
-  // Generate order number
+  // Generate daily sequential order number (resets to 1 each day)
   const { rows: countRows } = await query<{ count: string }>(
-    'SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = CURRENT_DATE'
+    "SELECT COUNT(*) as count FROM orders WHERE created_at >= CURRENT_DATE AT TIME ZONE 'Asia/Kolkata' AND created_at < (CURRENT_DATE + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata'"
   );
-  const orderCount = parseInt(countRows[0].count) + 1;
-  const orderNumber = `ORD-${dateStr}-${String(orderCount).padStart(4, '0')}`;
+  const dailySeq = parseInt(countRows[0].count) + 1;
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yy = String(now.getFullYear()).slice(-2);
+  const orderNumber = `SNS-${dd}${mm}${yy}-${String(dailySeq).padStart(3, '0')}`;
 
   // Create order
   const { rows: orderRows } = await query<Order>(

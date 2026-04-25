@@ -12,8 +12,8 @@ import {
   Search,
   X,
   Printer,
-  CheckCircle2,
 } from 'lucide-react';
+import BillTemplate from '@/components/BillTemplate';
 import toast from 'react-hot-toast';
 
 interface MenuItem {
@@ -156,62 +156,11 @@ export default function CheckoutPage() {
         <Navbar />
         <main className="flex-1 md:ml-64 p-6 pt-16 md:pt-6">
           <div className="max-w-lg mx-auto">
-            {/* Bill */}
-            <div ref={billRef} className="card" id="bill">
-              <div className="text-center mb-6">
-                <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                <h2 className="text-xl font-bold text-gray-900">Order Confirmed!</h2>
-                <p className="text-gray-500 text-sm mt-1">
-                  {completedOrder.order_number}
-                </p>
-              </div>
-
-              <div className="border-t border-dashed border-gray-300 py-4">
-                <div className="text-center mb-4">
-                  <h3 className="font-bold text-lg">☕ Sip n Snacks</h3>
-                  <p className="text-xs text-gray-500">
-                    {new Date(completedOrder.created_at).toLocaleString('en-IN', {
-                      timeZone: 'Asia/Kolkata',
-                    })}
-                  </p>
-                </div>
-
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 font-medium text-gray-600">Item</th>
-                      <th className="text-center py-2 font-medium text-gray-600">Qty</th>
-                      <th className="text-right py-2 font-medium text-gray-600">Price</th>
-                      <th className="text-right py-2 font-medium text-gray-600">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {completedOrder.items.map((item, idx) => (
-                      <tr key={idx} className="border-b border-gray-100">
-                        <td className="py-2">{item.item_name}</td>
-                        <td className="py-2 text-center">{item.quantity}</td>
-                        <td className="py-2 text-right">₹{item.price}</td>
-                        <td className="py-2 text-right font-medium">₹{item.subtotal}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div className="border-t-2 border-gray-900 mt-4 pt-3">
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total</span>
-                    <span>₹{completedOrder.total_amount.toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-
-                <p className="text-center text-xs text-gray-400 mt-4">
-                  Thank you for your order!
-                </p>
-              </div>
-            </div>
+            {/* Professional Bill Template */}
+            <BillTemplate order={completedOrder} />
 
             {/* Actions */}
-            <div className="flex gap-3 mt-4 no-print">
+            <div className="flex gap-3 mt-4 no-print" style={{ maxWidth: 360, margin: '16px auto 0' }}>
               <button
                 onClick={handlePrint}
                 className="btn-secondary flex-1 flex items-center justify-center gap-2"
