@@ -68,7 +68,6 @@ export default function KitchenPage() {
   useEffect(() => {
     fetchOrders();
     fetchCompletedToday();
-    // Auto-refresh every 5 seconds
     const interval = setInterval(() => {
       fetchOrders();
       fetchCompletedToday();
@@ -114,39 +113,41 @@ export default function KitchenPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-950">
+    <div className="flex min-h-screen">
       <Navbar />
-      <main className="flex-1 md:ml-64 p-4 pt-16 md:pt-4">
+      <main className="flex-1 md:ml-64 p-6 pt-16 md:pt-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex items-center gap-3">
-            <ChefHat className="w-8 h-8 text-amber-400" />
+            <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
+              <ChefHat className="w-6 h-6 text-amber-600" />
+            </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Kitchen Display</h1>
-              <p className="text-gray-500 text-xs">
+              <h1 className="text-2xl font-bold text-gray-900">Kitchen Display</h1>
+              <p className="text-gray-500 text-sm">
                 Auto-refreshes every 5s · Last:{' '}
                 {lastRefresh.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4 mt-4 sm:mt-0">
             <div className="flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1 text-yellow-400">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-50 text-yellow-700 font-medium">
                 <Clock className="w-4 h-4" />
                 {pendingOrders.length} New
               </span>
-              <span className="flex items-center gap-1 text-orange-400">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 text-orange-700 font-medium">
                 <Flame className="w-4 h-4" />
                 {acceptedOrders.length} Cooking
               </span>
-              <span className="flex items-center gap-1 text-green-400">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 font-medium">
                 <CheckCircle2 className="w-4 h-4" />
                 {completedToday.length} Done
               </span>
             </div>
             <button
               onClick={() => { fetchOrders(); fetchCompletedToday(); }}
-              className="p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white"
+              className="p-2 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
             >
               <RefreshCw className="w-5 h-5" />
             </button>
@@ -158,37 +159,39 @@ export default function KitchenPage() {
             <Loader2 className="w-10 h-10 animate-spin text-amber-500" />
           </div>
         ) : orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <ChefHat className="w-16 h-16 text-gray-700 mb-4" />
-            <p className="text-gray-500 text-lg">No active orders</p>
-            <p className="text-gray-600 text-sm">New orders will appear here automatically</p>
+          <div className="card text-center py-16">
+            <ChefHat className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg font-medium">No active orders</p>
+            <p className="text-gray-400 text-sm mt-1">New orders will appear here automatically</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {/* Pending orders first (yellow), then accepted (orange) */}
             {[...pendingOrders, ...acceptedOrders].map((order) => {
               const isPending = order.status === 'pending';
-              const borderColor = isPending ? 'border-yellow-500' : 'border-orange-500';
-              const headerBg = isPending ? 'bg-yellow-500' : 'bg-orange-500';
-              const pulseClass = isPending ? 'animate-pulse' : '';
 
               return (
                 <div
                   key={order.id}
-                  className={`rounded-xl border-2 ${borderColor} bg-gray-900 overflow-hidden shadow-lg ${pulseClass}`}
+                  className={`rounded-xl border-2 overflow-hidden shadow-sm hover:shadow-md transition-all ${
+                    isPending
+                      ? 'border-yellow-400 bg-yellow-50/50'
+                      : 'border-orange-400 bg-orange-50/50'
+                  }`}
                 >
                   {/* Header */}
-                  <div className={`${headerBg} px-4 py-3 flex items-center justify-between`}>
-                    <div>
-                      <span className="text-2xl font-black text-white">
-                        #{getDailyNum(order.order_number)}
-                      </span>
-                    </div>
+                  <div
+                    className={`px-4 py-3 flex items-center justify-between ${
+                      isPending ? 'bg-yellow-400' : 'bg-orange-400'
+                    }`}
+                  >
+                    <span className="text-2xl font-black text-white">
+                      #{getDailyNum(order.order_number)}
+                    </span>
                     <div className="text-right">
-                      <span className="text-white/80 text-xs font-medium block">
-                        {isPending ? '🆕 NEW' : '🔥 COOKING'}
+                      <span className="text-white/90 text-xs font-semibold block">
+                        {isPending ? '🆕 NEW ORDER' : '🔥 COOKING'}
                       </span>
-                      <span className="text-white text-xs flex items-center gap-1 justify-end">
+                      <span className="text-white/80 text-xs flex items-center gap-1 justify-end">
                         <Clock className="w-3 h-3" />
                         {getTimeSince(order.created_at)} ago
                       </span>
@@ -201,26 +204,30 @@ export default function KitchenPage() {
                       {order.items.map((item, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between border-b border-gray-800 pb-2 last:border-0"
+                          className="flex items-center gap-3 pb-2 border-b border-gray-200 last:border-0 last:pb-0"
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="bg-gray-800 text-white text-sm font-bold rounded-md w-8 h-8 flex items-center justify-center">
-                              {item.quantity}x
-                            </span>
-                            <span className="text-white font-medium text-sm">
-                              {item.item_name}
-                            </span>
-                          </div>
+                          <span
+                            className={`text-sm font-bold rounded-lg w-9 h-9 flex items-center justify-center shrink-0 ${
+                              isPending
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-orange-100 text-orange-800'
+                            }`}
+                          >
+                            {item.quantity}x
+                          </span>
+                          <span className="text-gray-900 font-medium text-sm">
+                            {item.item_name}
+                          </span>
                         </div>
                       ))}
                     </div>
 
                     {/* Total */}
-                    <div className="mt-3 pt-2 border-t border-gray-700 flex justify-between items-center">
-                      <span className="text-gray-400 text-xs">
+                    <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
+                      <span className="text-gray-500 text-xs">
                         {order.items.reduce((s, i) => s + i.quantity, 0)} items
                       </span>
-                      <span className="text-white font-bold">
+                      <span className="text-gray-900 font-bold">
                         ₹{order.total_amount.toLocaleString('en-IN')}
                       </span>
                     </div>
@@ -265,7 +272,7 @@ export default function KitchenPage() {
         {/* Completed today section */}
         {completedToday.length > 0 && (
           <div className="mt-8">
-            <h2 className="text-lg font-bold text-gray-400 mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-500" />
               Completed Today ({completedToday.length})
             </h2>
@@ -273,13 +280,13 @@ export default function KitchenPage() {
               {completedToday.map((order) => (
                 <div
                   key={order.id}
-                  className="rounded-lg border border-green-900 bg-gray-900/50 p-3 opacity-60"
+                  className="rounded-lg border border-green-200 bg-green-50/50 p-3"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-green-400">
+                    <span className="font-bold text-green-700">
                       #{getDailyNum(order.order_number)}
                     </span>
-                    <span className="text-green-500 text-xs">✓ Done</span>
+                    <span className="text-green-500 text-xs font-medium">✓ Done</span>
                   </div>
                   <div className="space-y-1">
                     {order.items.map((item, idx) => (
@@ -288,7 +295,7 @@ export default function KitchenPage() {
                       </p>
                     ))}
                   </div>
-                  <p className="text-gray-500 text-xs mt-2 font-bold">
+                  <p className="text-gray-700 text-xs mt-2 font-bold">
                     ₹{order.total_amount}
                   </p>
                 </div>
