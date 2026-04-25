@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   UtensilsCrossed,
   ShoppingCart,
+  ChefHat,
   BarChart3,
   LogOut,
   Menu,
@@ -19,6 +20,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/menu', label: 'Menu', icon: UtensilsCrossed },
   { href: '/checkout', label: 'Checkout', icon: ShoppingCart },
+  { href: '/kitchen', label: 'Kitchen', icon: ChefHat },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
 ];
 

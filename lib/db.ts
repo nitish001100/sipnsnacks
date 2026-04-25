@@ -87,6 +87,7 @@ export interface Order {
   id: number;
   order_number: string;
   total_amount: number;
+  status: string;
   created_at: string;
 }
 
@@ -209,6 +210,26 @@ export async function getOrders(
     limit,
     totalPages: Math.ceil(total / limit),
   };
+}
+
+export async function updateOrderStatus(id: number, status: string): Promise<OrderWithItems | null> {
+  await query('UPDATE orders SET status = $1 WHERE id = $2', [status, id]);
+  return getOrderById(id);
+}
+
+export async function getKitchenOrders(): Promise<OrderWithItems[]> {
+  const { rows: orders } = await query<Order>(
+    "SELECT * FROM orders WHERE DATE(created_at) = CURRENT_DATE AND status IN ('pending', 'accepted') ORDER BY created_at ASC"
+  );
+  const ordersWithItems: OrderWithItems[] = [];
+  for (const order of orders) {
+    const { rows: itemRows } = await query<OrderItem>(
+      'SELECT * FROM order_items WHERE order_id = $1',
+      [order.id]
+    );
+    ordersWithItems.push({ ...order, items: itemRows });
+  }
+  return ordersWithItems;
 }
 
 // ==================== REPORTS ====================
