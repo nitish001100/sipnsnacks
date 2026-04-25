@@ -109,37 +109,51 @@ export async function createOrder(
   items: { menu_item_id: number; item_name: string; quantity: number; price: number }[]
 ) {
   const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
 
-  // Generate daily sequential order number (resets to 1 each day)
-  const { rows: countRows } = await query<{ count: string }>(
-    "SELECT COUNT(*) as count FROM orders WHERE created_at >= CURRENT_DATE AT TIME ZONE 'Asia/Kolkata' AND created_at < (CURRENT_DATE + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata'"
-  );
-  const dailySeq = parseInt(countRows[0].count) + 1;
-  const dd = String(now.getDate()).padStart(2, '0');
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const yy = String(now.getFullYear()).slice(-2);
-  const orderNumber = `SNS-${dd}${mm}${yy}-${String(dailySeq).padStart(3, '0')}`;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  // Create order
-  const { rows: orderRows } = await query<Order>(
-    'INSERT INTO orders (order_number, total_amount) VALUES ($1, $2) RETURNING *',
-    [orderNumber, totalAmount]
-  );
-  const order = orderRows[0];
+    // Generate daily sequential order number using MAX inside transaction
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const prefix = `SNS-${dd}${mm}${yy}-`;
 
-  // Create order items
-  for (const item of items) {
-    const subtotal = item.price * item.quantity;
-    await query(
-      'INSERT INTO order_items (order_id, menu_item_id, item_name, quantity, price, subtotal) VALUES ($1, $2, $3, $4, $5, $6)',
-      [order.id, item.menu_item_id, item.item_name, item.quantity, item.price, subtotal]
+    const { rows: maxRows } = await client.query(
+      "SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM '[0-9]+$') AS INTEGER)), 0) + 1 as next_seq FROM orders WHERE order_number LIKE $1",
+      [`${prefix}%`]
     );
-  }
+    const dailySeq = maxRows[0].next_seq;
+    const orderNumber = `${prefix}${String(dailySeq).padStart(3, '0')}`;
 
-  // Fetch complete order with items
-  return getOrderById(order.id);
+    // Create order
+    const { rows: orderRows } = await client.query(
+      'INSERT INTO orders (order_number, total_amount) VALUES ($1, $2) RETURNING *',
+      [orderNumber, totalAmount]
+    );
+    const order = orderRows[0];
+
+    // Create order items
+    for (const item of items) {
+      const subtotal = item.price * item.quantity;
+      await client.query(
+        'INSERT INTO order_items (order_id, menu_item_id, item_name, quantity, price, subtotal) VALUES ($1, $2, $3, $4, $5, $6)',
+        [order.id, item.menu_item_id, item.item_name, item.quantity, item.price, subtotal]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    // Fetch complete order with items
+    return getOrderById(order.id);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function getOrderById(id: number): Promise<OrderWithItems | null> {
