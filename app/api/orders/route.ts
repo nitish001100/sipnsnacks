@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createOrder, getOrders } from '@/lib/db';
 import { getAuthFromHeaders } from '@/lib/auth';
+import { notifyKitchen } from '@/lib/push-notify';
 
 // GET /api/orders - Get all orders with pagination
 export async function GET(request: Request) {
@@ -60,6 +61,13 @@ export async function POST(request: Request) {
     }
 
     const order = await createOrder(items);
+
+    // Send push notification to kitchen (non-blocking)
+    if (order) {
+      const totalItems = items.reduce((sum: number, i: { quantity: number }) => sum + i.quantity, 0);
+      const orderNum = order.order_number?.split('-').pop()?.replace(/^0+/, '') || '?';
+      notifyKitchen(orderNum, totalItems).catch(() => {});
+    }
 
     return NextResponse.json({ order }, { status: 201 });
   } catch (error) {

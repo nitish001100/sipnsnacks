@@ -14,6 +14,8 @@ import {
 import toast from 'react-hot-toast';
 import { useHideMoney } from '@/hooks/useHideMoney';
 import HideMoneyToggle from '@/components/HideMoneyToggle';
+import { Bell } from 'lucide-react';
+import { requestNotificationPermission, onForegroundMessage } from '@/lib/firebase-client';
 
 interface OrderItem {
   item_name: string;
@@ -39,6 +41,7 @@ export default function KitchenPage() {
   const [completedToday, setCompletedToday] = useState<KitchenOrder[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const { hidden, show, hide, mask, isChef } = useHideMoney();
+  const [notifEnabled, setNotifEnabled] = useState(false);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -85,6 +88,50 @@ export default function KitchenPage() {
       // silent
     }
   }, []);
+
+  // Push notification setup
+  const enableNotifications = useCallback(async () => {
+    try {
+      const token = await requestNotificationPermission();
+      if (token) {
+        // Register token with backend
+        await fetch('/api/push/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        setNotifEnabled(true);
+        toast.success('🔔 Notifications enabled!');
+      }
+    } catch {
+      toast.error('Failed to enable notifications');
+    }
+  }, []);
+
+  // Listen for foreground push messages
+  useEffect(() => {
+    // Check if already granted
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      setNotifEnabled(true);
+    }
+
+    // Setup foreground listener
+    onForegroundMessage((payload: unknown) => {
+      const p = payload as { notification?: { title?: string; body?: string } };
+      const title = p.notification?.title || '🔔 New Order!';
+      const body = p.notification?.body || 'New order received';
+      toast(body, {
+        icon: '🔔',
+        duration: 6000,
+        style: { background: '#FEF3C7', color: '#92400E', fontWeight: 600 },
+      });
+      // Also vibrate if supported
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      // Refresh orders
+      fetchOrders();
+      fetchCompletedToday();
+    });
+  }, [fetchOrders, fetchCompletedToday]);
 
   useEffect(() => {
     fetchOrders();
@@ -184,6 +231,20 @@ export default function KitchenPage() {
               </span>
             </div>
             <HideMoneyToggle hidden={hidden} show={show} hide={hide} isChef={isChef} />
+            {!notifEnabled ? (
+              <button
+                onClick={enableNotifications}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-200 transition-all"
+              >
+                <Bell className="w-3.5 h-3.5" />
+                Enable Alerts
+              </button>
+            ) : (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                <Bell className="w-3.5 h-3.5" />
+                Alerts On
+              </span>
+            )}
             <button
               onClick={handleManualRefresh}
               disabled={refreshing}
