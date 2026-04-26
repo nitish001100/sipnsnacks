@@ -13,7 +13,11 @@ import {
   LogOut,
   Menu,
   X,
+  Download,
+  Mail,
+  Trash2,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 const allNavItems = [
@@ -105,11 +109,43 @@ export default function Navbar() {
           })}
         </nav>
 
+        {/* Admin Actions */}
+        {role === 'admin' && (
+          <div className="px-4 py-3 border-t border-[#2a4a5c] space-y-1">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider px-4 mb-1">Actions</p>
+            <button
+              onClick={() => {
+                const today = format(new Date(), 'yyyy-MM-dd');
+                window.open(`/api/reports/export?date=${today}`, '_blank');
+                toast.success('Downloading...');
+              }}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-[#2a4a5c] hover:text-white transition-all w-full"
+            >
+              <Download className="w-4 h-4" />
+              Export Excel
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('pos-action', { detail: 'settle' }))}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-[#2a4a5c] hover:text-white transition-all w-full"
+            >
+              <Mail className="w-4 h-4" />
+              Settle Day
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('pos-action', { detail: 'reset' }))}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-red-600/10 hover:text-red-400 transition-all w-full"
+            >
+              <Trash2 className="w-4 h-4" />
+              Reset Data
+            </button>
+          </div>
+        )}
+
         {/* Logout */}
-        <div className="px-4 py-4 border-t border-slate-700">
+        <div className="px-4 py-3 border-t border-slate-700">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-300 hover:bg-red-600/20 hover:text-red-400 transition-all duration-200 w-full"
+            className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-red-600/20 hover:text-red-400 transition-all duration-200 w-full"
           >
             <LogOut className="w-5 h-5" />
             Logout

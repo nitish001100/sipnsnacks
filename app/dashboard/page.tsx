@@ -107,10 +107,20 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboard();
-    // Auto-refresh every 15 seconds
     const interval = setInterval(fetchDashboard, 15000);
     return () => clearInterval(interval);
   }, [fetchDashboard]);
+
+  // Listen for sidebar action events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const action = (e as CustomEvent).detail;
+      if (action === 'settle') setSettlementModal(true);
+      if (action === 'reset') { setResetPassword(''); setResetConfirm(''); setResetModal(true); }
+    };
+    window.addEventListener('pos-action', handler);
+    return () => window.removeEventListener('pos-action', handler);
+  }, []);
 
   const unlockEarnings = async () => {
     if (!password) return;
@@ -240,27 +250,6 @@ export default function DashboardPage() {
     <div className="flex min-h-screen">
       <Navbar />
       <main className="flex-1 md:ml-64 p-4 pt-14 md:pt-4 md:h-screen md:overflow-hidden">
-        {/* Header - compact */}
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 leading-tight">Sip n Snacks</h1>
-            <p className="text-gray-400 text-xs">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
-          </div>
-          <div className="flex gap-1.5 flex-wrap items-center">
-            <HideMoneyToggle hidden={moneyHidden} show={moneyShow} hide={moneyHide} isChef={isChef} />
-            <button onClick={handleExport} className="btn-secondary flex items-center gap-1.5 text-xs py-1.5 px-3">
-              <Download className="w-3.5 h-3.5" /> Export
-            </button>
-            <button onClick={() => setSettlementModal(true)}
-              className="bg-[#1B2E3C] hover:bg-[#2a4a5c] text-white font-medium py-1.5 px-3 rounded-lg transition-colors flex items-center gap-1.5 text-xs">
-              <Mail className="w-3.5 h-3.5" /> Settle
-            </button>
-            <button onClick={() => { setResetPassword(''); setResetConfirm(''); setResetModal(true); }}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium py-1.5 px-3 rounded-lg transition-colors flex items-center gap-1.5 text-xs">
-              <Trash2 className="w-3.5 h-3.5" /> Reset
-            </button>
-          </div>
-        </div>
 
         {loading ? (
           <div className="flex items-center justify-center h-48">
