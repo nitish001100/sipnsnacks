@@ -21,7 +21,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+      </head>
       <body className="min-h-screen">
+        {/* Blurred logo background */}
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+          <div
+            className="absolute inset-0 bg-repeat opacity-[0.04]"
+            style={{
+              backgroundImage: 'url(/logo.png)',
+              backgroundSize: '120px 120px',
+              filter: 'blur(1px)',
+            }}
+          />
+        </div>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -33,7 +47,9 @@ export default function RootLayout({
             },
           }}
         />
-        {children}
+        <div className="relative z-10">
+          {children}
+        </div>
       </body>
     </html>
   );
