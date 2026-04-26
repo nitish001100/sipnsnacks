@@ -91,7 +91,8 @@ export default function DashboardPage() {
   const [resetting, setResetting] = useState(false);
   const [resetConfirm, setResetConfirm] = useState('');
   const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
   const today = format(new Date(), 'yyyy-MM-dd');
   const { hidden: moneyHidden, show: moneyShow, hide: moneyHide, mask, isChef } = useHideMoney();
 
@@ -636,126 +637,94 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Daily Revenue Calendar Modal */}
+      {/* Calendar Grid Modal */}
       {showCalendarModal && stats && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCalendarModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-orange-600" />
-                📅 Revenue by Date
-              </h3>
-              <button onClick={() => setShowCalendarModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
-            </div>
-
+          <div className="bg-white rounded-2xl p-5 w-full max-w-md mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {(() => {
-              // Build monthly summaries from dailyBreakdown
-              const monthlyMap: Record<string, { revenue: number; orders: number; items: number; days: number }> = {};
+              const isCurrentMonth = calMonth === new Date().getMonth() && calYear === new Date().getFullYear();
+              const monthLabel = format(new Date(calYear, calMonth, 1), 'MMMM yyyy');
+              // Build revenue map for this month
+              const revMap: Record<number, { revenue: number; orders: number }> = {};
+              let monthTotal = 0;
+              let monthOrders = 0;
               (stats.dailyBreakdown || []).forEach((day) => {
                 const ds = typeof day.date === 'string' ? day.date.split('T')[0] : String(day.date).split('T')[0];
-                const key = ds.substring(0, 7); // YYYY-MM
-                if (!monthlyMap[key]) monthlyMap[key] = { revenue: 0, orders: 0, items: 0, days: 0 };
-                monthlyMap[key].revenue += day.revenue;
-                monthlyMap[key].orders += day.orders;
-                monthlyMap[key].items += day.items;
-                monthlyMap[key].days += 1;
+                const [y, m, d] = ds.split('-').map(Number);
+                if (y === calYear && m === calMonth + 1) {
+                  revMap[d] = { revenue: day.revenue, orders: day.orders };
+                  monthTotal += day.revenue;
+                  monthOrders += day.orders;
+                }
               });
-              const months = Object.keys(monthlyMap).sort().reverse();
-              const maxMonthRev = Math.max(...Object.values(monthlyMap).map((m) => m.revenue), 1);
+              // Calendar grid
+              const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+              const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+              const todayDate = new Date().getDate();
+              const weeks: (number | null)[][] = [];
+              let week: (number | null)[] = Array(firstDay).fill(null);
+              for (let d = 1; d <= daysInMonth; d++) {
+                week.push(d);
+                if (week.length === 7) { weeks.push(week); week = []; }
+              }
+              if (week.length > 0) { while (week.length < 7) week.push(null); weeks.push(week); }
 
               return (
                 <>
-                  {/* All-Time Total */}
-                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 text-center">
-                    <p className="text-xs text-orange-600 font-medium">All-Time Total</p>
-                    <p className="text-3xl font-black text-orange-700">{mask(allTime?.total_revenue ?? 0)}</p>
-                    <p className="text-xs text-orange-500 mt-1">{allTime?.total_orders ?? 0} orders · {months.length} months</p>
+                  {/* Month Nav */}
+                  <div className="flex items-center justify-between mb-3">
+                    <button onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); } else setCalMonth(calMonth - 1); }}
+                      className="w-9 h-9 rounded-full bg-gray-100 hover:bg-orange-100 flex items-center justify-center text-gray-600 font-bold text-lg">←</button>
+                    <div className="text-center">
+                      <p className="font-bold text-gray-900 text-lg">{monthLabel}</p>
+                      <p className="text-xs text-orange-600 font-medium">{mask(monthTotal)} · {monthOrders} orders</p>
+                    </div>
+                    <button onClick={() => { if (!isCurrentMonth) { if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); } else setCalMonth(calMonth + 1); } }}
+                      disabled={isCurrentMonth}
+                      className="w-9 h-9 rounded-full bg-gray-100 hover:bg-orange-100 flex items-center justify-center text-gray-600 font-bold text-lg disabled:opacity-20">→</button>
                   </div>
 
-                  {months.length === 0 ? (
-                    <p className="text-gray-400 text-sm text-center py-8">No sales data yet</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {months.map((key) => {
-                        const [y, m] = key.split('-').map(Number);
-                        const monthObj = new Date(y, m - 1, 1);
-                        let monthLabel = key;
-                        try { monthLabel = format(monthObj, 'MMMM yyyy'); } catch { /* */ }
-                        const data = monthlyMap[key];
-                        const isCurrentMonth = y === new Date().getFullYear() && m === new Date().getMonth() + 1;
-                        const barPct = (data.revenue / maxMonthRev) * 100;
+                  {/* All-Time */}
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-2.5 mb-3 flex items-center justify-between">
+                    <span className="text-xs text-orange-600 font-medium">All-Time</span>
+                    <span className="font-black text-orange-700">{mask(allTime?.total_revenue ?? 0)}</span>
+                  </div>
 
-                        const isExpanded = expandedMonth === key;
-                        const monthDays = (stats.dailyBreakdown || []).filter((day) => {
-                          const ds = typeof day.date === 'string' ? day.date.split('T')[0] : String(day.date).split('T')[0];
-                          return ds.startsWith(key);
-                        });
+                  {/* Day headers */}
+                  <div className="grid grid-cols-7 gap-1 mb-1">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+                      <div key={d} className="text-center text-[10px] font-semibold text-gray-400 py-1">{d}</div>
+                    ))}
+                  </div>
 
-                        return (
-                          <div key={key} className={`rounded-xl border-2 transition-all overflow-hidden ${isCurrentMonth ? 'border-orange-400 bg-orange-50/60' : 'border-gray-200 bg-gray-50 hover:border-gray-300'}`}>
-                            <div className="p-4 cursor-pointer" onClick={() => setExpandedMonth(isExpanded ? null : key)}>
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg">{isExpanded ? '▾' : '▸'}</span>
-                                  <div>
-                                    <p className={`font-bold text-base ${isCurrentMonth ? 'text-orange-700' : 'text-gray-800'}`}>
-                                      📅 {monthLabel}
-                                    </p>
-                                    {isCurrentMonth && <span className="text-[9px] bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full font-bold">CURRENT</span>}
-                                  </div>
-                                </div>
-                                <p className={`text-xl font-black ${isCurrentMonth ? 'text-orange-700' : 'text-gray-800'}`}>
-                                  {mask(data.revenue)}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
-                                <span>📦 {data.orders} orders</span>
-                                <span>🍽️ {data.items} items</span>
-                                <span>📆 {data.days} active days</span>
-                              </div>
-                              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full transition-all ${isCurrentMonth ? 'bg-orange-400' : 'bg-amber-400'}`} style={{ width: `${barPct}%` }} />
-                              </div>
-                            </div>
-                            {/* Expanded daily details */}
-                            {isExpanded && (
-                              <div className="border-t border-gray-200 bg-white px-4 py-3 space-y-1.5">
-                                <div className="grid grid-cols-12 gap-1 text-[10px] font-semibold text-gray-400 uppercase pb-1 border-b border-gray-100">
-                                  <span className="col-span-4">Date</span>
-                                  <span className="col-span-3 text-right">Revenue</span>
-                                  <span className="col-span-2 text-center">Orders</span>
-                                  <span className="col-span-3 text-right">Export</span>
-                                </div>
-                                {monthDays.map((day) => {
-                                  const ds = typeof day.date === 'string' ? day.date.split('T')[0] : String(day.date).split('T')[0];
-                                  let dayLabel = ds;
-                                  try { dayLabel = format(new Date(ds + 'T12:00:00'), 'EEE d'); } catch { /* */ }
-                                  const isDayToday = ds === today;
-                                  return (
-                                    <div key={ds} className={`grid grid-cols-12 gap-1 items-center py-1.5 px-1 rounded ${isDayToday ? 'bg-orange-50' : 'hover:bg-gray-50'}`}>
-                                      <span className={`col-span-4 text-xs font-medium ${isDayToday ? 'text-orange-700' : 'text-gray-700'}`}>
-                                        {dayLabel} {isDayToday && '•'}
-                                      </span>
-                                      <span className={`col-span-3 text-xs text-right font-bold ${isDayToday ? 'text-orange-700' : 'text-gray-700'}`}>
-                                        {mask(day.revenue)}
-                                      </span>
-                                      <span className="col-span-2 text-center text-[11px] text-gray-500">{day.orders}</span>
-                                      <div className="col-span-3 text-right">
-                                        <button onClick={(e) => { e.stopPropagation(); window.open(`/api/reports/export?date=${ds}`, '_blank'); }}
-                                          className="text-[10px] text-amber-600 hover:text-amber-800 font-medium">
-                                          📥 Excel
-                                        </button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {/* Calendar cells */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {weeks.flat().map((d, idx) => {
+                      if (d === null) return <div key={`e${idx}`} className="aspect-square" />;
+                      const data = revMap[d];
+                      const isToday = isCurrentMonth && d === todayDate;
+                      const hasData = !!data;
+                      const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                      return (
+                        <div key={d}
+                          onClick={() => hasData && window.open(`/api/reports/export?date=${dateStr}`, '_blank')}
+                          className={`aspect-square rounded-lg flex flex-col items-center justify-center p-0.5 transition-all
+                            ${isToday ? 'ring-2 ring-orange-400 bg-orange-50' : ''}
+                            ${hasData ? 'bg-green-50 hover:bg-green-100 cursor-pointer border border-green-200' : 'bg-gray-50'}
+                          `}>
+                          <span className={`text-xs font-bold ${isToday ? 'text-orange-700' : hasData ? 'text-gray-800' : 'text-gray-300'}`}>{d}</span>
+                          {hasData ? (
+                            <span className="text-[9px] font-bold text-green-700 leading-tight">₹{data.revenue >= 1000 ? `${(data.revenue / 1000).toFixed(1)}k` : data.revenue}</span>
+                          ) : (
+                            <span className="text-[9px] text-gray-300">-</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Close */}
+                  <button onClick={() => setShowCalendarModal(false)} className="w-full mt-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50 rounded-lg">Close</button>
                 </>
               );
             })()}
