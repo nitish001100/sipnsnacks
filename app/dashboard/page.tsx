@@ -339,6 +339,10 @@ export default function DashboardPage() {
 
             {/* Quick Actions - compact row */}
             <div className="grid grid-cols-4 gap-2 mb-3">
+              <a href="/menu" className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all">
+                <Package className="w-5 h-5 text-green-500 shrink-0" />
+                <span className="font-semibold text-gray-800 text-xs">Menu</span>
+              </a>
               <a href="/checkout" className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:border-amber-400 hover:bg-amber-50 transition-all">
                 <ShoppingBag className="w-5 h-5 text-amber-500 shrink-0" />
                 <span className="font-semibold text-gray-800 text-xs">New Order</span>
@@ -346,10 +350,6 @@ export default function DashboardPage() {
               <a href="/kitchen" className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition-all">
                 <ChefHat className="w-5 h-5 text-orange-500 shrink-0" />
                 <span className="font-semibold text-gray-800 text-xs">Kitchen</span>
-              </a>
-              <a href="/menu" className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all">
-                <Package className="w-5 h-5 text-green-500 shrink-0" />
-                <span className="font-semibold text-gray-800 text-xs">Menu</span>
               </a>
               <a href="/reports" className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-all">
                 <TrendingUp className="w-5 h-5 text-purple-500 shrink-0" />
