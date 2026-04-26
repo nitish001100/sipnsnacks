@@ -61,7 +61,7 @@ export default function Navbar() {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:flex-col md:w-64 bg-[#1B2E3C] text-white min-h-screen fixed left-0 top-0 z-40">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-[#2a4a5c]">
+        <Link href="/dashboard" className="flex items-center gap-3 px-6 py-5 border-b border-[#2a4a5c] hover:bg-[#2a4a5c] transition-colors">
           <div className="w-11 h-11 shrink-0 rounded-full overflow-hidden bg-white">
             <Image src="/logo.png" alt="Sip n Snacks" width={44} height={44} className="w-full h-full object-contain" />
           </div>
@@ -69,7 +69,7 @@ export default function Navbar() {
             <h1 className="text-lg font-bold">Sip n Snacks</h1>
             <p className="text-xs text-amber-300/70">Cafe · Refreshments · Bites</p>
           </div>
-        </div>
+        </Link>
 
         {/* Role Badge */}
         <div className="px-6 pt-4 pb-2">
@@ -119,7 +119,7 @@ export default function Navbar() {
 
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#1B2E3C] text-white px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden bg-white">
             <Image src="/logo.png" alt="SNS" width={32} height={32} className="w-full h-full object-contain" />
           </div>
@@ -127,7 +127,7 @@ export default function Navbar() {
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
             role === 'chef' ? 'bg-orange-500/30 text-orange-300' : 'bg-amber-500/30 text-amber-300'
           }`}>{roleLabel}</span>
-        </div>
+        </Link>
         <button onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -147,7 +147,7 @@ export default function Navbar() {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-[#2a4a5c]">
+        <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-6 py-5 border-b border-[#2a4a5c] hover:bg-[#2a4a5c] transition-colors">
           <div className="w-11 h-11 shrink-0 rounded-full overflow-hidden bg-white">
             <Image src="/logo.png" alt="Sip n Snacks" width={44} height={44} className="w-full h-full object-contain" />
           </div>
@@ -155,7 +155,7 @@ export default function Navbar() {
             <h1 className="text-lg font-bold">Sip n Snacks</h1>
             <p className="text-xs text-amber-300/70">Cafe · Refreshments · Bites</p>
           </div>
-        </div>
+        </Link>
         <div className="px-6 pt-4 pb-2">
           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
             role === 'chef'
