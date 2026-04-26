@@ -649,106 +649,70 @@ export default function DashboardPage() {
               <button onClick={() => setShowCalendarModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
             </div>
 
-            {/* Month Navigation */}
             {(() => {
-              const monthName = format(new Date(calYear, calMonth, 1), 'MMMM yyyy');
-              const isCurrentMonth = calMonth === new Date().getMonth() && calYear === new Date().getFullYear();
-              const filteredDays = (stats.dailyBreakdown || []).filter((day) => {
+              // Build monthly summaries from dailyBreakdown
+              const monthlyMap: Record<string, { revenue: number; orders: number; items: number; days: number }> = {};
+              (stats.dailyBreakdown || []).forEach((day) => {
                 const ds = typeof day.date === 'string' ? day.date.split('T')[0] : String(day.date).split('T')[0];
-                const [y, m] = ds.split('-').map(Number);
-                return y === calYear && m === calMonth + 1;
+                const key = ds.substring(0, 7); // YYYY-MM
+                if (!monthlyMap[key]) monthlyMap[key] = { revenue: 0, orders: 0, items: 0, days: 0 };
+                monthlyMap[key].revenue += day.revenue;
+                monthlyMap[key].orders += day.orders;
+                monthlyMap[key].items += day.items;
+                monthlyMap[key].days += 1;
               });
-              const monthRevenue = filteredDays.reduce((s, d) => s + d.revenue, 0);
-              const monthOrders = filteredDays.reduce((s, d) => s + d.orders, 0);
+              const months = Object.keys(monthlyMap).sort().reverse();
+              const maxMonthRev = Math.max(...Object.values(monthlyMap).map((m) => m.revenue), 1);
 
               return (
                 <>
-                  {/* Month selector */}
-                  <div className="flex items-center justify-between mb-3 bg-gray-50 rounded-xl p-3">
-                    <button onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); } else { setCalMonth(calMonth - 1); } }}
-                      className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-orange-50 hover:border-orange-300 transition-all text-lg font-bold">
-                      ←
-                    </button>
-                    <div className="text-center">
-                      <p className="font-bold text-gray-900">{monthName}</p>
-                      <p className="text-xs text-gray-500">{mask(monthRevenue)} · {monthOrders} orders · {filteredDays.length} days</p>
-                    </div>
-                    <button onClick={() => { if (!isCurrentMonth) { if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); } else { setCalMonth(calMonth + 1); } } }}
-                      disabled={isCurrentMonth}
-                      className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-orange-50 hover:border-orange-300 transition-all text-lg font-bold disabled:opacity-30 disabled:hover:bg-white">
-                      →
-                    </button>
-                  </div>
-
                   {/* All-Time Total */}
-                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] text-orange-600 font-medium">All-Time Total</p>
-                      <p className="text-lg font-black text-orange-700">{mask(allTime?.total_revenue ?? 0)}</p>
-                    </div>
-                    <p className="text-xs text-orange-500">{stats.dailyBreakdown?.length || 0} days · {allTime?.total_orders ?? 0} orders</p>
+                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 text-center">
+                    <p className="text-xs text-orange-600 font-medium">All-Time Total</p>
+                    <p className="text-3xl font-black text-orange-700">{mask(allTime?.total_revenue ?? 0)}</p>
+                    <p className="text-xs text-orange-500 mt-1">{allTime?.total_orders ?? 0} orders · {months.length} months</p>
                   </div>
 
-                  {/* Daily breakdown */}
-                  {filteredDays.length === 0 ? (
-                    <p className="text-gray-400 text-sm text-center py-8">No sales data for {monthName}</p>
+                  {months.length === 0 ? (
+                    <p className="text-gray-400 text-sm text-center py-8">No sales data yet</p>
                   ) : (
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-12 gap-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider pb-2 border-b px-1">
-                        <span className="col-span-4">Date</span>
-                        <span className="col-span-3 text-right">Revenue</span>
-                        <span className="col-span-2 text-center">Orders</span>
-                        <span className="col-span-3 text-right">Report</span>
-                      </div>
-                      {filteredDays.map((day) => {
-                  const dateStr = typeof day.date === 'string' ? day.date.split('T')[0] : String(day.date).split('T')[0];
-                  const dateObj = new Date(dateStr + 'T12:00:00');
-                  const isToday = dateStr === today;
-                  let dayFormatted = dateStr;
-                  try { dayFormatted = format(dateObj, 'EEE, MMM d'); } catch { /* fallback */ }
-                  const maxRev = Math.max(...stats.dailyBreakdown.map((d) => d.revenue));
-                  const barPct = maxRev > 0 ? (day.revenue / maxRev) * 100 : 0;
-                  return (
-                    <div key={dateStr} className={`rounded-lg p-2.5 ${isToday ? 'bg-orange-50 border border-orange-200' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}>
-                      <div className="grid grid-cols-12 gap-2 items-center">
-                        <div className="col-span-4">
-                          <p className={`text-sm font-semibold ${isToday ? 'text-orange-700' : 'text-gray-800'}`}>
-                            {dayFormatted}
-                          </p>
-                          {isToday && <span className="text-[9px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">TODAY</span>}
-                        </div>
-                        <p className={`col-span-3 text-sm text-right font-bold ${isToday ? 'text-orange-700' : 'text-gray-800'}`}>
-                          {mask(day.revenue)}
-                        </p>
-                        <p className="col-span-2 text-center text-xs text-gray-500">
-                          {day.orders} <span className="text-gray-400">({day.items})</span>
-                        </p>
-                        <div className="col-span-3 text-right">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); window.open(`/api/reports/export?date=${dateStr}`, '_blank'); toast.success('Downloading...'); }}
-                            className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-full transition-colors"
-                          >
-                            <Download className="w-3 h-3" /> Excel
-                          </button>
-                        </div>
-                      </div>
-                      {/* Revenue bar */}
-                      <div className="mt-1.5 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all ${isToday ? 'bg-orange-400' : 'bg-amber-400'}`} style={{ width: `${barPct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
+                    <div className="space-y-3">
+                      {months.map((key) => {
+                        const [y, m] = key.split('-').map(Number);
+                        const monthObj = new Date(y, m - 1, 1);
+                        let monthLabel = key;
+                        try { monthLabel = format(monthObj, 'MMMM yyyy'); } catch { /* */ }
+                        const data = monthlyMap[key];
+                        const isCurrentMonth = y === new Date().getFullYear() && m === new Date().getMonth() + 1;
+                        const barPct = (data.revenue / maxMonthRev) * 100;
 
-                {/* Total footer */}
-                <div className="border-t pt-3 mt-2 grid grid-cols-12 gap-2 px-1 font-bold text-sm">
-                  <span className="col-span-4 text-gray-700">Grand Total</span>
-                  <span className="col-span-3 text-right text-orange-700">{mask(stats.dailyBreakdown.reduce((s, d) => s + d.revenue, 0))}</span>
-                  <span className="col-span-2 text-center text-gray-600">{stats.dailyBreakdown.reduce((s, d) => s + d.orders, 0)}</span>
-                  <span className="col-span-3"></span>
-                </div>
-              </div>
-            )}
+                        return (
+                          <div key={key} className={`rounded-xl p-4 border-2 transition-all ${isCurrentMonth ? 'border-orange-400 bg-orange-50/60' : 'border-gray-200 bg-gray-50 hover:border-gray-300'}`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <p className={`font-bold text-base ${isCurrentMonth ? 'text-orange-700' : 'text-gray-800'}`}>
+                                  📅 {monthLabel}
+                                </p>
+                                {isCurrentMonth && <span className="text-[9px] bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full font-bold">CURRENT</span>}
+                              </div>
+                              <p className={`text-xl font-black ${isCurrentMonth ? 'text-orange-700' : 'text-gray-800'}`}>
+                                {mask(data.revenue)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                              <span>📦 {data.orders} orders</span>
+                              <span>🍽️ {data.items} items</span>
+                              <span>📆 {data.days} active days</span>
+                            </div>
+                            {/* Revenue bar */}
+                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${isCurrentMonth ? 'bg-orange-400' : 'bg-amber-400'}`} style={{ width: `${barPct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </>
               );
             })()}
