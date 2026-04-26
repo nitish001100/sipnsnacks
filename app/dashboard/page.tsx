@@ -239,31 +239,25 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen">
       <Navbar />
-      <main className="flex-1 md:ml-64 p-6 pt-16 md:pt-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+      <main className="flex-1 md:ml-64 p-4 pt-14 md:pt-4 md:h-screen md:overflow-hidden">
+        {/* Header - compact */}
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Sip n Snacks</h1>
-            <p className="text-gray-500 mt-1">
-              {format(new Date(), 'EEEE, MMMM d, yyyy')}
-            </p>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">Sip n Snacks</h1>
+            <p className="text-gray-400 text-xs">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
           </div>
-          <div className="flex gap-2 mt-4 sm:mt-0 flex-wrap items-center">
+          <div className="flex gap-1.5 flex-wrap items-center">
             <HideMoneyToggle hidden={moneyHidden} show={moneyShow} hide={moneyHide} isChef={isChef} />
-            <button onClick={handleExport} className="btn-secondary flex items-center gap-2 text-sm">
-              <Download className="w-4 h-4" /> Export
+            <button onClick={handleExport} className="btn-secondary flex items-center gap-1.5 text-xs py-1.5 px-3">
+              <Download className="w-3.5 h-3.5" /> Export
             </button>
-            <button
-              onClick={() => setSettlementModal(true)}
-              className="bg-[#1B2E3C] hover:bg-[#2a4a5c] text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm"
-            >
-              <Mail className="w-4 h-4" /> Settle Day
+            <button onClick={() => setSettlementModal(true)}
+              className="bg-[#1B2E3C] hover:bg-[#2a4a5c] text-white font-medium py-1.5 px-3 rounded-lg transition-colors flex items-center gap-1.5 text-xs">
+              <Mail className="w-3.5 h-3.5" /> Settle
             </button>
-            <button
-              onClick={() => { setResetPassword(''); setResetConfirm(''); setResetModal(true); }}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm"
-            >
-              <Trash2 className="w-4 h-4" /> Reset Data
+            <button onClick={() => { setResetPassword(''); setResetConfirm(''); setResetModal(true); }}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium py-1.5 px-3 rounded-lg transition-colors flex items-center gap-1.5 text-xs">
+              <Trash2 className="w-3.5 h-3.5" /> Reset
             </button>
           </div>
         </div>
@@ -274,9 +268,9 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            {/* Stats Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="card hover:shadow-md transition-shadow">
+            {/* Stats Row - compact */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+              <div className="card !p-4 hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 font-medium">Today&apos;s Revenue</p>
@@ -293,7 +287,7 @@ export default function DashboardPage() {
                   <div className="bg-green-50 p-3 rounded-xl"><IndianRupee className="w-6 h-6 text-green-700" /></div>
                 </div>
               </div>
-              <div className="card hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowOrdersModal(true)}>
+              <div className="card !p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowOrdersModal(true)}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 font-medium">Today&apos;s Orders</p>
@@ -305,7 +299,7 @@ export default function DashboardPage() {
                   <div className="bg-amber-50 p-3 rounded-xl"><ShoppingBag className="w-6 h-6 text-amber-700" /></div>
                 </div>
               </div>
-              <div className="card hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowItemsModal(true)}>
+              <div className="card !p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowItemsModal(true)}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 font-medium">Items Sold</p>
@@ -317,7 +311,7 @@ export default function DashboardPage() {
                   <div className="bg-purple-50 p-3 rounded-xl"><Package className="w-6 h-6 text-purple-700" /></div>
                 </div>
               </div>
-              <div className="card hover:shadow-md transition-shadow">
+              <div className="card !p-4 hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 font-medium">All-Time Revenue</p>
@@ -335,185 +329,151 @@ export default function DashboardPage() {
             </div>
 
             {earningsUnlocked && (
-              <div className="flex justify-end mb-4">
+              <div className="flex justify-end mb-1">
                 <button onClick={() => { setEarningsUnlocked(false); setAllTime(null); }}
-                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-500 transition-colors">
-                  <EyeOff className="w-4 h-4" /> Hide earnings
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors">
+                  <EyeOff className="w-3 h-3" /> Hide
                 </button>
               </div>
             )}
 
-            {/* ===== LIVE ORDER STATUS SECTION ===== */}
-            {stats && (
-              <div className="card mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <ChefHat className="w-5 h-5 text-amber-600" />
-                    Live Order Status
-                  </h2>
-                  <a href="/kitchen" className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
-                    Open Kitchen <ArrowRight className="w-4 h-4" />
-                  </a>
-                </div>
+            {/* Quick Actions - compact row */}
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              <a href="/checkout" className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:border-amber-400 hover:bg-amber-50 transition-all">
+                <ShoppingBag className="w-5 h-5 text-amber-500 shrink-0" />
+                <span className="font-semibold text-gray-800 text-xs">New Order</span>
+              </a>
+              <a href="/kitchen" className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition-all">
+                <ChefHat className="w-5 h-5 text-orange-500 shrink-0" />
+                <span className="font-semibold text-gray-800 text-xs">Kitchen</span>
+              </a>
+              <a href="/menu" className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all">
+                <Package className="w-5 h-5 text-green-500 shrink-0" />
+                <span className="font-semibold text-gray-800 text-xs">Menu</span>
+              </a>
+              <a href="/reports" className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-all">
+                <TrendingUp className="w-5 h-5 text-purple-500 shrink-0" />
+                <span className="font-semibold text-gray-800 text-xs">Reports</span>
+              </a>
+            </div>
 
-                {/* Status Pipeline */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="rounded-xl bg-yellow-50 border-2 border-yellow-200 p-4 text-center">
-                    <div className="w-10 h-10 rounded-full bg-yellow-400 text-white flex items-center justify-center mx-auto mb-2">
-                      <Clock className="w-5 h-5" />
-                    </div>
-                    <p className="text-3xl font-black text-yellow-700">{stats.statusCounts.pending}</p>
-                    <p className="text-xs font-medium text-yellow-600 mt-1">⌚ Pending</p>
-                    <p className="text-[10px] text-yellow-500">Waiting for kitchen</p>
+            {/* Main: Recent Orders (left) + Live Status (right) */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 flex-1">
+              {/* LEFT: Recent Orders + Top Items */}
+              <div className="lg:col-span-3 flex flex-col gap-3">
+                {/* Recent Orders */}
+                {stats && (
+                  <div className="card !p-4 flex-1 overflow-hidden">
+                    <h2 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4 text-amber-600" />
+                      Recent Orders
+                    </h2>
+                    {stats.recentOrders.length === 0 ? (
+                      <p className="text-gray-400 text-sm text-center py-4">No orders yet today</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-[28vh] overflow-y-auto">
+                        {stats.recentOrders.map((order) => (
+                          <div key={order.id} className="flex items-center justify-between py-2 px-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <span className="text-base font-bold text-gray-800">#{getDailyNum(order.order_number)}</span>
+                              <div>
+                                {getStatusBadge(order.status)}
+                                <p className="text-[10px] text-gray-400 mt-0.5">
+                                  {new Date(order.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })} · {order.item_count} items
+                                </p>
+                              </div>
+                            </div>
+                            <span className="font-bold text-gray-800 text-xs">{mask(order.total_amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="rounded-xl bg-orange-50 border-2 border-orange-200 p-4 text-center">
-                    <div className="w-10 h-10 rounded-full bg-orange-400 text-white flex items-center justify-center mx-auto mb-2">
-                      <Flame className="w-5 h-5" />
-                    </div>
-                    <p className="text-3xl font-black text-orange-700">{stats.statusCounts.accepted}</p>
-                    <p className="text-xs font-medium text-orange-600 mt-1">🔥 Cooking</p>
-                    <p className="text-[10px] text-orange-500">Being prepared</p>
-                  </div>
-                  <div className="rounded-xl bg-green-50 border-2 border-green-200 p-4 text-center">
-                    <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center mx-auto mb-2">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                    <p className="text-3xl font-black text-green-700">{stats.statusCounts.completed}</p>
-                    <p className="text-xs font-medium text-green-600 mt-1">✅ Completed</p>
-                    <p className="text-[10px] text-green-500">Served to customer</p>
-                  </div>
-                </div>
+                )}
 
-                {/* Progress Bar */}
-                {totalOrders > 0 && (
-                  <div className="mb-2">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Order fulfillment progress</span>
-                      <span>{Math.round((stats.statusCounts.completed / totalOrders) * 100)}% completed</span>
-                    </div>
-                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden flex">
-                      {stats.statusCounts.completed > 0 && (
-                        <div
-                          className="bg-green-500 transition-all duration-500"
-                          style={{ width: `${(stats.statusCounts.completed / totalOrders) * 100}%` }}
-                        />
-                      )}
-                      {stats.statusCounts.accepted > 0 && (
-                        <div
-                          className="bg-orange-400 transition-all duration-500"
-                          style={{ width: `${(stats.statusCounts.accepted / totalOrders) * 100}%` }}
-                        />
-                      )}
-                      {stats.statusCounts.pending > 0 && (
-                        <div
-                          className="bg-yellow-400 transition-all duration-500"
-                          style={{ width: `${(stats.statusCounts.pending / totalOrders) * 100}%` }}
-                        />
-                      )}
+                {/* Top Items - compact */}
+                {stats && stats.topItems.length > 0 && (
+                  <div className="card !p-4">
+                    <h2 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-amber-600" />
+                      Top Items
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                      {stats.topItems.slice(0, 5).map((item, idx) => (
+                        <span key={item.item_name} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 text-xs">
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            idx === 0 ? 'bg-amber-400 text-white' : 'bg-gray-200 text-gray-500'
+                          }`}>{idx + 1}</span>
+                          <span className="font-medium text-gray-700">{item.item_name}</span>
+                          <span className="text-gray-400">×{item.total_qty}</span>
+                        </span>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
-            )}
 
-            {/* Quick Actions */}
-            <div className="card mb-6">
-              <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <a href="/checkout" className="flex items-center gap-3 p-4 rounded-lg border-2 border-dashed border-gray-200 hover:border-amber-400 hover:bg-amber-50 transition-all">
-                  <ShoppingBag className="w-8 h-8 text-amber-500" />
-                  <div>
-                    <p className="font-semibold text-gray-800">New Order</p>
-                    <p className="text-sm text-gray-500">Start checkout</p>
-                  </div>
-                </a>
-                <a href="/kitchen" className="flex items-center gap-3 p-4 rounded-lg border-2 border-dashed border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition-all">
-                  <ChefHat className="w-8 h-8 text-orange-500" />
-                  <div>
-                    <p className="font-semibold text-gray-800">Kitchen</p>
-                    <p className="text-sm text-gray-500">View orders</p>
-                  </div>
-                </a>
-                <a href="/menu" className="flex items-center gap-3 p-4 rounded-lg border-2 border-dashed border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all">
-                  <Package className="w-8 h-8 text-green-500" />
-                  <div>
-                    <p className="font-semibold text-gray-800">Menu</p>
-                    <p className="text-sm text-gray-500">Manage items</p>
-                  </div>
-                </a>
-                <a href="/reports" className="flex items-center gap-3 p-4 rounded-lg border-2 border-dashed border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-all">
-                  <TrendingUp className="w-8 h-8 text-purple-500" />
-                  <div>
-                    <p className="font-semibold text-gray-800">Reports</p>
-                    <p className="text-sm text-gray-500">Sales analytics</p>
-                  </div>
-                </a>
-              </div>
-            </div>
-
-            {/* Two Column: Recent Orders + Top Items */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Recent Orders */}
+              {/* RIGHT: Live Order Status */}
               {stats && (
-                <div className="card">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <ShoppingBag className="w-5 h-5 text-amber-600" />
-                    Recent Orders
-                  </h2>
-                  {stats.recentOrders.length === 0 ? (
-                    <p className="text-gray-400 text-sm text-center py-8">No orders yet today</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {stats.recentOrders.map((order) => (
-                        <div key={order.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <span className="text-lg font-bold text-gray-800">#{getDailyNum(order.order_number)}</span>
-                            <div>
-                              {getStatusBadge(order.status)}
-                              <p className="text-[11px] text-gray-400 mt-0.5">
-                                {new Date(order.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })} · {order.item_count} items
-                              </p>
-                            </div>
-                          </div>
-                          <span className="font-bold text-gray-800 text-sm">{mask(order.total_amount)}</span>
-                        </div>
-                      ))}
+                <div className="lg:col-span-2 card !p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                      <ChefHat className="w-4 h-4 text-amber-600" />
+                      Live Status
+                    </h2>
+                    <a href="/kitchen" className="text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-0.5">
+                      Kitchen <ArrowRight className="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-yellow-400 text-white flex items-center justify-center shrink-0">
+                        <Clock className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-2xl font-black text-yellow-700 leading-none">{stats.statusCounts.pending}</p>
+                        <p className="text-xs text-yellow-600 mt-0.5">⌚ Pending</p>
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
+                    <div className="rounded-xl bg-orange-50 border border-orange-200 p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-orange-400 text-white flex items-center justify-center shrink-0">
+                        <Flame className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-2xl font-black text-orange-700 leading-none">{stats.statusCounts.accepted}</p>
+                        <p className="text-xs text-orange-600 mt-0.5">🔥 Cooking</p>
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-green-50 border border-green-200 p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-2xl font-black text-green-700 leading-none">{stats.statusCounts.completed}</p>
+                        <p className="text-xs text-green-600 mt-0.5">✅ Done</p>
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Top Selling Items */}
-              {stats && (
-                <div className="card">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-amber-600" />
-                    Top Selling Items Today
-                  </h2>
-                  {stats.topItems.length === 0 ? (
-                    <p className="text-gray-400 text-sm text-center py-8">No sales yet today</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {stats.topItems.map((item, idx) => {
-                        const maxQty = stats.topItems[0].total_qty;
-                        const barWidth = (item.total_qty / maxQty) * 100;
-                        return (
-                          <div key={item.item_name} className="flex items-center gap-3">
-                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                              idx === 0 ? 'bg-amber-400 text-white' : idx === 1 ? 'bg-gray-300 text-white' : idx === 2 ? 'bg-orange-300 text-white' : 'bg-gray-100 text-gray-500'
-                            }`}>{idx + 1}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between mb-1">
-                                <span className="text-sm font-medium text-gray-800 truncate">{item.item_name}</span>
-                                <span className="text-xs text-gray-500 shrink-0 ml-2">{item.total_qty} sold</span>
-                              </div>
-                              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-amber-400 rounded-full transition-all duration-500" style={{ width: `${barWidth}%` }} />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                  {/* Progress Bar */}
+                  {totalOrders > 0 && (
+                    <div className="mt-3">
+                      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                        <span>Fulfillment</span>
+                        <span>{Math.round((stats.statusCounts.completed / totalOrders) * 100)}%</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden flex">
+                        {stats.statusCounts.completed > 0 && (
+                          <div className="bg-green-500 transition-all" style={{ width: `${(stats.statusCounts.completed / totalOrders) * 100}%` }} />
+                        )}
+                        {stats.statusCounts.accepted > 0 && (
+                          <div className="bg-orange-400 transition-all" style={{ width: `${(stats.statusCounts.accepted / totalOrders) * 100}%` }} />
+                        )}
+                        {stats.statusCounts.pending > 0 && (
+                          <div className="bg-yellow-400 transition-all" style={{ width: `${(stats.statusCounts.pending / totalOrders) * 100}%` }} />
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
