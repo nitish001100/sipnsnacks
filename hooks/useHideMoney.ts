@@ -9,8 +9,8 @@ function getUserRole(): string {
 }
 
 export function useHideMoney() {
-  // Default: hidden
-  const [hidden, setHidden] = useState(true);
+  // Default: visible (show amounts)
+  const [hidden, setHidden] = useState(false);
   const [role, setRole] = useState('admin');
 
   useEffect(() => {
@@ -21,8 +21,8 @@ export function useHideMoney() {
       return;
     }
     const stored = localStorage.getItem('pos-hide-money');
-    // Default to hidden unless explicitly set to 'false'
-    setHidden(stored !== 'false');
+    // Default to visible unless explicitly set to 'true'
+    setHidden(stored === 'true');
   }, []);
 
   const show = useCallback(() => {
