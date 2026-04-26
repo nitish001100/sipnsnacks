@@ -91,8 +91,7 @@ export default function DashboardPage() {
   const [resetting, setResetting] = useState(false);
   const [resetConfirm, setResetConfirm] = useState('');
   const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [calMonth, setCalMonth] = useState(new Date().getMonth());
-  const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const today = format(new Date(), 'yyyy-MM-dd');
   const { hidden: moneyHidden, show: moneyShow, hide: moneyHide, mask, isChef } = useHideMoney();
 
@@ -324,7 +323,7 @@ export default function DashboardPage() {
                     ) : (
                       <p className="text-2xl font-bold mt-1 text-orange-700">{mask(0)}</p>
                     )}
-                    <p className="text-[10px] text-orange-500 mt-0.5">Click for daily breakdown →</p>
+                    <p className="text-[10px] text-orange-500 mt-0.5">Click for monthly breakdown →</p>
                   </div>
                   <div className="bg-orange-50 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-orange-700" /></div>
                 </div>
@@ -686,28 +685,72 @@ export default function DashboardPage() {
                         const isCurrentMonth = y === new Date().getFullYear() && m === new Date().getMonth() + 1;
                         const barPct = (data.revenue / maxMonthRev) * 100;
 
+                        const isExpanded = expandedMonth === key;
+                        const monthDays = (stats.dailyBreakdown || []).filter((day) => {
+                          const ds = typeof day.date === 'string' ? day.date.split('T')[0] : String(day.date).split('T')[0];
+                          return ds.startsWith(key);
+                        });
+
                         return (
-                          <div key={key} className={`rounded-xl p-4 border-2 transition-all ${isCurrentMonth ? 'border-orange-400 bg-orange-50/60' : 'border-gray-200 bg-gray-50 hover:border-gray-300'}`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <div>
-                                <p className={`font-bold text-base ${isCurrentMonth ? 'text-orange-700' : 'text-gray-800'}`}>
-                                  📅 {monthLabel}
+                          <div key={key} className={`rounded-xl border-2 transition-all overflow-hidden ${isCurrentMonth ? 'border-orange-400 bg-orange-50/60' : 'border-gray-200 bg-gray-50 hover:border-gray-300'}`}>
+                            <div className="p-4 cursor-pointer" onClick={() => setExpandedMonth(isExpanded ? null : key)}>
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-lg">{isExpanded ? '▾' : '▸'}</span>
+                                  <div>
+                                    <p className={`font-bold text-base ${isCurrentMonth ? 'text-orange-700' : 'text-gray-800'}`}>
+                                      📅 {monthLabel}
+                                    </p>
+                                    {isCurrentMonth && <span className="text-[9px] bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full font-bold">CURRENT</span>}
+                                  </div>
+                                </div>
+                                <p className={`text-xl font-black ${isCurrentMonth ? 'text-orange-700' : 'text-gray-800'}`}>
+                                  {mask(data.revenue)}
                                 </p>
-                                {isCurrentMonth && <span className="text-[9px] bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full font-bold">CURRENT</span>}
                               </div>
-                              <p className={`text-xl font-black ${isCurrentMonth ? 'text-orange-700' : 'text-gray-800'}`}>
-                                {mask(data.revenue)}
-                              </p>
+                              <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                                <span>📦 {data.orders} orders</span>
+                                <span>🍽️ {data.items} items</span>
+                                <span>📆 {data.days} active days</span>
+                              </div>
+                              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full transition-all ${isCurrentMonth ? 'bg-orange-400' : 'bg-amber-400'}`} style={{ width: `${barPct}%` }} />
+                              </div>
                             </div>
-                            <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
-                              <span>📦 {data.orders} orders</span>
-                              <span>🍽️ {data.items} items</span>
-                              <span>📆 {data.days} active days</span>
-                            </div>
-                            {/* Revenue bar */}
-                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full transition-all ${isCurrentMonth ? 'bg-orange-400' : 'bg-amber-400'}`} style={{ width: `${barPct}%` }} />
-                            </div>
+                            {/* Expanded daily details */}
+                            {isExpanded && (
+                              <div className="border-t border-gray-200 bg-white px-4 py-3 space-y-1.5">
+                                <div className="grid grid-cols-12 gap-1 text-[10px] font-semibold text-gray-400 uppercase pb-1 border-b border-gray-100">
+                                  <span className="col-span-4">Date</span>
+                                  <span className="col-span-3 text-right">Revenue</span>
+                                  <span className="col-span-2 text-center">Orders</span>
+                                  <span className="col-span-3 text-right">Export</span>
+                                </div>
+                                {monthDays.map((day) => {
+                                  const ds = typeof day.date === 'string' ? day.date.split('T')[0] : String(day.date).split('T')[0];
+                                  let dayLabel = ds;
+                                  try { dayLabel = format(new Date(ds + 'T12:00:00'), 'EEE d'); } catch { /* */ }
+                                  const isDayToday = ds === today;
+                                  return (
+                                    <div key={ds} className={`grid grid-cols-12 gap-1 items-center py-1.5 px-1 rounded ${isDayToday ? 'bg-orange-50' : 'hover:bg-gray-50'}`}>
+                                      <span className={`col-span-4 text-xs font-medium ${isDayToday ? 'text-orange-700' : 'text-gray-700'}`}>
+                                        {dayLabel} {isDayToday && '•'}
+                                      </span>
+                                      <span className={`col-span-3 text-xs text-right font-bold ${isDayToday ? 'text-orange-700' : 'text-gray-700'}`}>
+                                        {mask(day.revenue)}
+                                      </span>
+                                      <span className="col-span-2 text-center text-[11px] text-gray-500">{day.orders}</span>
+                                      <div className="col-span-3 text-right">
+                                        <button onClick={(e) => { e.stopPropagation(); window.open(`/api/reports/export?date=${ds}`, '_blank'); }}
+                                          className="text-[10px] text-amber-600 hover:text-amber-800 font-medium">
+                                          📥 Excel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
