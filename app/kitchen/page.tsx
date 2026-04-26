@@ -273,58 +273,46 @@ export default function KitchenPage() {
   return (
     <div className="flex min-h-screen">
       <Navbar />
-      <main className="flex-1 md:ml-64 p-6 pt-16 md:pt-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
-              <ChefHat className="w-6 h-6 text-amber-600" />
+      <main className="flex-1 md:ml-64 p-3 pt-14 md:p-6 md:pt-6">
+        {/* Header - mobile compact */}
+        <div className="mb-3 md:mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <ChefHat className="w-5 h-5 md:w-6 md:h-6 text-amber-600" />
+              <h1 className="text-base md:text-xl font-bold text-gray-900">Kitchen</h1>
+              <span className="text-[10px] md:text-xs text-gray-400">
+                {lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
+              </span>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Kitchen Display</h1>
-              <p className="text-gray-500 text-sm">
-                Auto-refreshes every 5s · Last:{' '}
-                {lastRefresh.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}
-              </p>
+            <div className="flex items-center gap-1.5">
+              <HideMoneyToggle hidden={hidden} show={show} hide={hide} isChef={isChef} />
+              {!notifEnabled ? (
+                <button onClick={enableNotifications}
+                  className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] md:text-xs font-medium bg-amber-100 text-amber-700">
+                  <Bell className="w-3 h-3" /> Alerts
+                </button>
+              ) : (
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] md:text-xs font-medium bg-green-100 text-green-700">
+                  <Bell className="w-3 h-3" /> On
+                </span>
+              )}
+              <button onClick={handleManualRefresh} disabled={refreshing}
+                className="p-1.5 rounded-lg bg-gray-100 text-gray-500 disabled:opacity-50">
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-4 mt-4 sm:mt-0">
-            <div className="flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-50 text-yellow-700 font-medium">
-                <Clock className="w-4 h-4" />
-                {pendingOrders.length} New
-              </span>
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 text-orange-700 font-medium">
-                <Flame className="w-4 h-4" />
-                {acceptedOrders.length} Cooking
-              </span>
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 font-medium">
-                <CheckCircle2 className="w-4 h-4" />
-                {completedToday.length} Done
-              </span>
-            </div>
-            <HideMoneyToggle hidden={hidden} show={show} hide={hide} isChef={isChef} />
-            {!notifEnabled ? (
-              <button
-                onClick={enableNotifications}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-200 transition-all"
-              >
-                <Bell className="w-3.5 h-3.5" />
-                Enable Alerts
-              </button>
-            ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                <Bell className="w-3.5 h-3.5" />
-                Alerts On
-              </span>
-            )}
-            <button
-              onClick={handleManualRefresh}
-              disabled={refreshing}
-              className="p-2 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
+          {/* Status badges row */}
+          <div className="flex items-center gap-2 text-[11px] md:text-sm">
+            <span className="flex items-center gap-1 px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-yellow-50 text-yellow-700 font-medium">
+              <Clock className="w-3 h-3 md:w-4 md:h-4" /> {pendingOrders.length} New
+            </span>
+            <span className="flex items-center gap-1 px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-orange-50 text-orange-700 font-medium">
+              <Flame className="w-3 h-3 md:w-4 md:h-4" /> {acceptedOrders.length} Cooking
+            </span>
+            <span className="flex items-center gap-1 px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-green-50 text-green-700 font-medium">
+              <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4" /> {completedToday.length} Done
+            </span>
           </div>
         </div>
 

@@ -49,6 +49,15 @@ export async function GET(request: Request) {
        FROM orders WHERE DATE(created_at) = CURRENT_DATE GROUP BY hour ORDER BY hour`
     );
 
+    // All-time revenue
+    const { rows: allTimeRows } = await query<{ total_revenue: string; total_orders: string }>(
+      'SELECT COALESCE(SUM(total_amount),0) as total_revenue, COUNT(*) as total_orders FROM orders'
+    );
+    const allTime = {
+      total_revenue: parseFloat(allTimeRows[0]?.total_revenue || '0'),
+      total_orders: parseInt(allTimeRows[0]?.total_orders || '0'),
+    };
+
     return NextResponse.json({
       statusCounts: statusMap,
       recentOrders: recentOrders.map((r) => ({
@@ -66,6 +75,7 @@ export async function GET(request: Request) {
         count: parseInt(r.count),
         revenue: parseFloat(r.revenue),
       })),
+      allTime,
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);

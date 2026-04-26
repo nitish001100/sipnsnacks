@@ -61,6 +61,7 @@ interface DashboardStats {
   recentOrders: RecentOrder[];
   topItems: TopItem[];
   hourlySales: { hour: number; count: number; revenue: number }[];
+  allTime: { total_revenue: number; total_orders: number };
 }
 
 export default function DashboardPage() {
@@ -68,7 +69,7 @@ export default function DashboardPage() {
   const [allTime, setAllTime] = useState<AllTime | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [earningsUnlocked, setEarningsUnlocked] = useState(false);
+  const [earningsUnlocked, setEarningsUnlocked] = useState(true);
   const [passwordModal, setPasswordModal] = useState(false);
   const [settlementModal, setSettlementModal] = useState(false);
   const [password, setPassword] = useState('');
@@ -97,6 +98,9 @@ export default function DashboardPage() {
       if (statsRes.ok) {
         const data = await statsRes.json();
         setStats(data);
+        if (data.allTime) {
+          setAllTime({ ...data.allTime, total_items: 0 });
+        }
       }
     } catch {
       toast.error('Failed to fetch dashboard data');
