@@ -56,12 +56,20 @@ interface TopItem {
   total_revenue: number;
 }
 
+interface DailyRevenue {
+  date: string;
+  revenue: number;
+  orders: number;
+  items: number;
+}
+
 interface DashboardStats {
   statusCounts: { pending: number; accepted: number; completed: number };
   recentOrders: RecentOrder[];
   topItems: TopItem[];
   hourlySales: { hour: number; count: number; revenue: number }[];
   allTime: { total_revenue: number; total_orders: number };
+  dailyBreakdown: DailyRevenue[];
 }
 
 export default function DashboardPage() {
@@ -82,6 +90,7 @@ export default function DashboardPage() {
   const [resetPassword, setResetPassword] = useState('');
   const [resetting, setResetting] = useState(false);
   const [resetConfirm, setResetConfirm] = useState('');
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
   const today = format(new Date(), 'yyyy-MM-dd');
   const { hidden: moneyHidden, show: moneyShow, hide: moneyHide, mask, isChef } = useHideMoney();
 
@@ -304,17 +313,16 @@ export default function DashboardPage() {
                   <div className="bg-purple-50 p-3 rounded-xl"><Package className="w-6 h-6 text-purple-700" /></div>
                 </div>
               </div>
-              <div className="card !p-4 hover:shadow-md transition-shadow">
+              <div className="card !p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowCalendarModal(true)}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 font-medium">All-Time Revenue</p>
                     {earningsUnlocked && allTime ? (
-                      <p className="text-2xl font-bold mt-1 text-orange-700">{mask(allTime.total_revenue)}</p>
+                      <p className="text-2xl font-bold mt-1 text-orange-700 underline decoration-orange-300 underline-offset-2">{mask(allTime.total_revenue)}</p>
                     ) : (
-                      <button onClick={() => setPasswordModal(true)} className="flex items-center gap-1.5 mt-1 text-gray-400 hover:text-amber-600 transition-colors">
-                        <Lock className="w-4 h-4" /><span className="text-sm font-medium">Tap to unlock</span>
-                      </button>
+                      <p className="text-2xl font-bold mt-1 text-orange-700">{mask(0)}</p>
                     )}
+                    <p className="text-[10px] text-orange-500 mt-0.5">Click for daily breakdown →</p>
                   </div>
                   <div className="bg-orange-50 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-orange-700" /></div>
                 </div>
@@ -623,6 +631,88 @@ export default function DashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Revenue Calendar Modal */}
+      {showCalendarModal && stats && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCalendarModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-orange-600" />
+                📅 Revenue by Date
+              </h3>
+              <button onClick={() => setShowCalendarModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+
+            {/* Total summary */}
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 text-center">
+              <p className="text-xs text-orange-600 font-medium">All-Time Total</p>
+              <p className="text-3xl font-black text-orange-700">{mask(allTime?.total_revenue ?? 0)}</p>
+              <p className="text-xs text-orange-500 mt-1">{stats.dailyBreakdown?.length || 0} days · {allTime?.total_orders ?? 0} orders</p>
+            </div>
+
+            {/* Daily breakdown list */}
+            {(!stats.dailyBreakdown || stats.dailyBreakdown.length === 0) ? (
+              <p className="text-gray-400 text-sm text-center py-8">No sales data yet</p>
+            ) : (
+              <div className="space-y-2">
+                {/* Header */}
+                <div className="grid grid-cols-12 gap-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider pb-2 border-b px-1">
+                  <span className="col-span-4">Date</span>
+                  <span className="col-span-3 text-right">Revenue</span>
+                  <span className="col-span-2 text-center">Orders</span>
+                  <span className="col-span-3 text-right">Report</span>
+                </div>
+                {stats.dailyBreakdown.map((day) => {
+                  const dateObj = new Date(day.date + 'T00:00:00');
+                  const isToday = day.date === today;
+                  const dayFormatted = format(dateObj, 'EEE, MMM d');
+                  const maxRev = Math.max(...stats.dailyBreakdown.map((d) => d.revenue));
+                  const barPct = maxRev > 0 ? (day.revenue / maxRev) * 100 : 0;
+                  return (
+                    <div key={day.date} className={`rounded-lg p-2.5 ${isToday ? 'bg-orange-50 border border-orange-200' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}>
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-4">
+                          <p className={`text-sm font-semibold ${isToday ? 'text-orange-700' : 'text-gray-800'}`}>
+                            {dayFormatted}
+                          </p>
+                          {isToday && <span className="text-[9px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">TODAY</span>}
+                        </div>
+                        <p className={`col-span-3 text-sm text-right font-bold ${isToday ? 'text-orange-700' : 'text-gray-800'}`}>
+                          {mask(day.revenue)}
+                        </p>
+                        <p className="col-span-2 text-center text-xs text-gray-500">
+                          {day.orders} <span className="text-gray-400">({day.items})</span>
+                        </p>
+                        <div className="col-span-3 text-right">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); window.open(`/api/reports/export?date=${day.date}`, '_blank'); toast.success('Downloading...'); }}
+                            className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-full transition-colors"
+                          >
+                            <Download className="w-3 h-3" /> Excel
+                          </button>
+                        </div>
+                      </div>
+                      {/* Revenue bar */}
+                      <div className="mt-1.5 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${isToday ? 'bg-orange-400' : 'bg-amber-400'}`} style={{ width: `${barPct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Total footer */}
+                <div className="border-t pt-3 mt-2 grid grid-cols-12 gap-2 px-1 font-bold text-sm">
+                  <span className="col-span-4 text-gray-700">Grand Total</span>
+                  <span className="col-span-3 text-right text-orange-700">{mask(stats.dailyBreakdown.reduce((s, d) => s + d.revenue, 0))}</span>
+                  <span className="col-span-2 text-center text-gray-600">{stats.dailyBreakdown.reduce((s, d) => s + d.orders, 0)}</span>
+                  <span className="col-span-3"></span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

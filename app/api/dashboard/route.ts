@@ -58,6 +58,21 @@ export async function GET(request: Request) {
       total_orders: parseInt(allTimeRows[0]?.total_orders || '0'),
     };
 
+    // Daily revenue breakdown (all dates)
+    const { rows: dailyRows } = await query<{ date: string; revenue: string; orders: string; items: string }>(
+      `SELECT DATE(o.created_at) as date,
+       COALESCE(SUM(o.total_amount),0) as revenue,
+       COUNT(*) as orders,
+       COALESCE(SUM((SELECT SUM(oi.quantity) FROM order_items oi WHERE oi.order_id = o.id)),0) as items
+       FROM orders o GROUP BY DATE(o.created_at) ORDER BY date DESC`
+    );
+    const dailyBreakdown = dailyRows.map((r) => ({
+      date: r.date,
+      revenue: parseFloat(r.revenue),
+      orders: parseInt(r.orders),
+      items: parseInt(r.items),
+    }));
+
     return NextResponse.json({
       statusCounts: statusMap,
       recentOrders: recentOrders.map((r) => ({
@@ -76,6 +91,7 @@ export async function GET(request: Request) {
         revenue: parseFloat(r.revenue),
       })),
       allTime,
+      dailyBreakdown,
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
