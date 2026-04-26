@@ -667,13 +667,15 @@ export default function DashboardPage() {
                   <span className="col-span-3 text-right">Report</span>
                 </div>
                 {stats.dailyBreakdown.map((day) => {
-                  const dateObj = new Date(day.date + 'T00:00:00');
-                  const isToday = day.date === today;
-                  const dayFormatted = format(dateObj, 'EEE, MMM d');
+                  const dateStr = typeof day.date === 'string' ? day.date.split('T')[0] : String(day.date).split('T')[0];
+                  const dateObj = new Date(dateStr + 'T12:00:00');
+                  const isToday = dateStr === today;
+                  let dayFormatted = dateStr;
+                  try { dayFormatted = format(dateObj, 'EEE, MMM d'); } catch { /* fallback */ }
                   const maxRev = Math.max(...stats.dailyBreakdown.map((d) => d.revenue));
                   const barPct = maxRev > 0 ? (day.revenue / maxRev) * 100 : 0;
                   return (
-                    <div key={day.date} className={`rounded-lg p-2.5 ${isToday ? 'bg-orange-50 border border-orange-200' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}>
+                    <div key={dateStr} className={`rounded-lg p-2.5 ${isToday ? 'bg-orange-50 border border-orange-200' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}>
                       <div className="grid grid-cols-12 gap-2 items-center">
                         <div className="col-span-4">
                           <p className={`text-sm font-semibold ${isToday ? 'text-orange-700' : 'text-gray-800'}`}>
@@ -689,7 +691,7 @@ export default function DashboardPage() {
                         </p>
                         <div className="col-span-3 text-right">
                           <button
-                            onClick={(e) => { e.stopPropagation(); window.open(`/api/reports/export?date=${day.date}`, '_blank'); toast.success('Downloading...'); }}
+                            onClick={(e) => { e.stopPropagation(); window.open(`/api/reports/export?date=${dateStr}`, '_blank'); toast.success('Downloading...'); }}
                             className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-full transition-colors"
                           >
                             <Download className="w-3 h-3" /> Excel
