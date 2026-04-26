@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import {
   ChefHat,
@@ -42,13 +42,86 @@ export default function KitchenPage() {
   const [refreshing, setRefreshing] = useState(false);
   const { hidden, show, hide, mask, isChef } = useHideMoney();
   const [notifEnabled, setNotifEnabled] = useState(false);
+  const knownOrderIds = useRef<Set<number>>(new Set());
+  const isFirstLoad = useRef(true);
+
+  // Play notification sound using Web Audio API
+  const playNotificationSound = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      // Play a pleasant ding-dong tone
+      const playTone = (freq: number, start: number, dur: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, ctx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + dur);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur);
+      };
+      playTone(880, 0, 0.15);
+      playTone(1100, 0.15, 0.15);
+      playTone(1320, 0.3, 0.3);
+    } catch {
+      // Audio not available
+    }
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     try {
       const res = await fetch('/api/kitchen', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        setOrders(data.orders);
+        const newOrders: KitchenOrder[] = data.orders;
+
+        // Detect new orders (not on first load)
+        if (!isFirstLoad.current && newOrders.length > 0) {
+          const newPending = newOrders.filter(
+            (o) => o.status === 'pending' && !knownOrderIds.current.has(o.id)
+          );
+          if (newPending.length > 0) {
+            // Play sound
+            playNotificationSound();
+            // Vibrate
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+            // Show big toast for each new order
+            newPending.forEach((order) => {
+              const num = order.order_number.split('-').pop()?.replace(/^0+/, '') || '?';
+              const itemCount = order.items.reduce((s, i) => s + i.quantity, 0);
+              const itemList = order.items.map((i) => `${i.quantity}× ${i.item_name}`).join(', ');
+              toast(
+                (t) => (
+                  <div onClick={() => toast.dismiss(t.id)} className="cursor-pointer">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-2xl">🔔</span>
+                      <span className="font-black text-lg text-amber-900">NEW ORDER #{num}</span>
+                    </div>
+                    <p className="text-sm text-amber-800 font-medium">{itemCount} items: {itemList}</p>
+                    <p className="text-xs text-amber-600 mt-1">Tap to dismiss</p>
+                  </div>
+                ),
+                {
+                  duration: 8000,
+                  style: {
+                    background: '#FEF3C7',
+                    border: '2px solid #F59E0B',
+                    padding: '16px',
+                    maxWidth: '400px',
+                  },
+                }
+              );
+            });
+          }
+        }
+
+        // Update known IDs
+        knownOrderIds.current = new Set(newOrders.map((o) => o.id));
+        isFirstLoad.current = false;
+
+        setOrders(newOrders);
         setLastRefresh(new Date());
       }
     } catch {
@@ -56,7 +129,7 @@ export default function KitchenPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [playNotificationSound]);
 
   const fetchCompletedToday = useCallback(async () => {
     try {
