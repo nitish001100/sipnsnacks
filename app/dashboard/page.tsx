@@ -91,6 +91,8 @@ export default function DashboardPage() {
   const [resetting, setResetting] = useState(false);
   const [resetConfirm, setResetConfirm] = useState('');
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
   const today = format(new Date(), 'yyyy-MM-dd');
   const { hidden: moneyHidden, show: moneyShow, hide: moneyHide, mask, isChef } = useHideMoney();
 
@@ -647,26 +649,58 @@ export default function DashboardPage() {
               <button onClick={() => setShowCalendarModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
             </div>
 
-            {/* Total summary */}
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 text-center">
-              <p className="text-xs text-orange-600 font-medium">All-Time Total</p>
-              <p className="text-3xl font-black text-orange-700">{mask(allTime?.total_revenue ?? 0)}</p>
-              <p className="text-xs text-orange-500 mt-1">{stats.dailyBreakdown?.length || 0} days · {allTime?.total_orders ?? 0} orders</p>
-            </div>
+            {/* Month Navigation */}
+            {(() => {
+              const monthName = format(new Date(calYear, calMonth, 1), 'MMMM yyyy');
+              const isCurrentMonth = calMonth === new Date().getMonth() && calYear === new Date().getFullYear();
+              const filteredDays = (stats.dailyBreakdown || []).filter((day) => {
+                const ds = typeof day.date === 'string' ? day.date.split('T')[0] : String(day.date).split('T')[0];
+                const [y, m] = ds.split('-').map(Number);
+                return y === calYear && m === calMonth + 1;
+              });
+              const monthRevenue = filteredDays.reduce((s, d) => s + d.revenue, 0);
+              const monthOrders = filteredDays.reduce((s, d) => s + d.orders, 0);
 
-            {/* Daily breakdown list */}
-            {(!stats.dailyBreakdown || stats.dailyBreakdown.length === 0) ? (
-              <p className="text-gray-400 text-sm text-center py-8">No sales data yet</p>
-            ) : (
-              <div className="space-y-2">
-                {/* Header */}
-                <div className="grid grid-cols-12 gap-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider pb-2 border-b px-1">
-                  <span className="col-span-4">Date</span>
-                  <span className="col-span-3 text-right">Revenue</span>
-                  <span className="col-span-2 text-center">Orders</span>
-                  <span className="col-span-3 text-right">Report</span>
-                </div>
-                {stats.dailyBreakdown.map((day) => {
+              return (
+                <>
+                  {/* Month selector */}
+                  <div className="flex items-center justify-between mb-3 bg-gray-50 rounded-xl p-3">
+                    <button onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); } else { setCalMonth(calMonth - 1); } }}
+                      className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-orange-50 hover:border-orange-300 transition-all text-lg font-bold">
+                      ←
+                    </button>
+                    <div className="text-center">
+                      <p className="font-bold text-gray-900">{monthName}</p>
+                      <p className="text-xs text-gray-500">{mask(monthRevenue)} · {monthOrders} orders · {filteredDays.length} days</p>
+                    </div>
+                    <button onClick={() => { if (!isCurrentMonth) { if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); } else { setCalMonth(calMonth + 1); } } }}
+                      disabled={isCurrentMonth}
+                      className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-orange-50 hover:border-orange-300 transition-all text-lg font-bold disabled:opacity-30 disabled:hover:bg-white">
+                      →
+                    </button>
+                  </div>
+
+                  {/* All-Time Total */}
+                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-orange-600 font-medium">All-Time Total</p>
+                      <p className="text-lg font-black text-orange-700">{mask(allTime?.total_revenue ?? 0)}</p>
+                    </div>
+                    <p className="text-xs text-orange-500">{stats.dailyBreakdown?.length || 0} days · {allTime?.total_orders ?? 0} orders</p>
+                  </div>
+
+                  {/* Daily breakdown */}
+                  {filteredDays.length === 0 ? (
+                    <p className="text-gray-400 text-sm text-center py-8">No sales data for {monthName}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-12 gap-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider pb-2 border-b px-1">
+                        <span className="col-span-4">Date</span>
+                        <span className="col-span-3 text-right">Revenue</span>
+                        <span className="col-span-2 text-center">Orders</span>
+                        <span className="col-span-3 text-right">Report</span>
+                      </div>
+                      {filteredDays.map((day) => {
                   const dateStr = typeof day.date === 'string' ? day.date.split('T')[0] : String(day.date).split('T')[0];
                   const dateObj = new Date(dateStr + 'T12:00:00');
                   const isToday = dateStr === today;
