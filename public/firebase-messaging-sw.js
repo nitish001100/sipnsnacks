@@ -7,12 +7,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-com
 
 // Firebase config - will be overridden by frontend but needed for SW init
 firebase.initializeApp({
-  apiKey: 'PLACEHOLDER',
-  authDomain: 'PLACEHOLDER',
-  projectId: 'PLACEHOLDER',
-  storageBucket: 'PLACEHOLDER',
-  messagingSenderId: 'PLACEHOLDER',
-  appId: 'PLACEHOLDER',
+  apiKey: 'AIzaSyD00b700Su14kfDDriK9Hwuh54T8XcmCoE',
+  authDomain: 'sip-n-snacks.firebaseapp.com',
+  projectId: 'sip-n-snacks',
+  storageBucket: 'sip-n-snacks.firebasestorage.app',
+  messagingSenderId: '420697679899',
+  appId: '1:420697679899:web:bf2444fed658a9bc7830be',
 });
 
 const messaging = firebase.messaging();
