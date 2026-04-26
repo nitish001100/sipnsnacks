@@ -25,15 +25,13 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </head>
       <body className="min-h-screen">
-        {/* Blurred logo background */}
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
-          <div
-            className="absolute inset-0 bg-repeat opacity-[0.04]"
-            style={{
-              backgroundImage: 'url(/logo.png)',
-              backgroundSize: '120px 120px',
-              filter: 'blur(1px)',
-            }}
+        {/* Single centered watermark logo */}
+        <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center" aria-hidden="true">
+          <img
+            src="/logo.png"
+            alt=""
+            className="w-[60vmin] h-[60vmin] max-w-[500px] max-h-[500px] object-contain opacity-[0.06]"
+            style={{ filter: 'blur(2px) grayscale(30%)' }}
           />
         </div>
         <Toaster
