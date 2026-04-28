@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const protectedPaths = ['/dashboard', '/menu', '/checkout', '/kitchen', '/reports'];
-const adminOnlyPaths = ['/dashboard', '/menu', '/checkout', '/reports'];
+const protectedPaths = ['/dashboard', '/menu/manage', '/checkout', '/kitchen', '/reports', '/orders'];
+const adminOnlyPaths = ['/dashboard', '/menu/manage', '/checkout', '/reports', '/orders'];
 const authPaths = ['/login'];
 
 function getRoleFromToken(token: string): string | null {
@@ -64,5 +64,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/menu/:path*', '/checkout/:path*', '/kitchen/:path*', '/reports/:path*', '/login'],
+  matcher: ['/', '/dashboard/:path*', '/menu/manage/:path*', '/checkout/:path*', '/kitchen/:path*', '/reports/:path*', '/orders/:path*', '/login'],
 };

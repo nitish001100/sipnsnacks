@@ -16,16 +16,20 @@ import {
   Download,
   Mail,
   Trash2,
+  Package,
+  Globe,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 const allNavItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
-  { href: '/menu', label: 'Menu', icon: UtensilsCrossed, roles: ['admin'] },
-  { href: '/checkout', label: 'Checkout', icon: ShoppingCart, roles: ['admin'] },
-  { href: '/kitchen', label: 'Kitchen', icon: ChefHat, roles: ['admin', 'chef'] },
-  { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'] },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'], exact: false },
+  { href: '/orders', label: 'Orders', icon: Package, roles: ['admin'], exact: false },
+  { href: '/menu/manage', label: 'Menu Manage', icon: UtensilsCrossed, roles: ['admin'], exact: false },
+  { href: '/checkout', label: 'Checkout', icon: ShoppingCart, roles: ['admin'], exact: false },
+  { href: '/kitchen', label: 'Kitchen', icon: ChefHat, roles: ['admin', 'chef'], exact: false },
+  { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'], exact: false },
+  { href: '/menu', label: 'Public Menu', icon: Globe, roles: ['admin'], exact: true },
 ];
 
 function getUserRole(): string {
@@ -90,7 +94,9 @@ export default function Navbar() {
         {/* Nav Items */}
         <nav className="flex-1 px-4 py-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const isActive = item.exact
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
             return (
               <Link

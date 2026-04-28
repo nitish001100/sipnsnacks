@@ -1,21 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Navbar from '@/components/Navbar';
+import Image from 'next/image';
+import Link from 'next/link';
 import {
-  Plus,
-  Pencil,
-  Trash2,
-  X,
-  Loader2,
   Search,
+  Loader2,
   UtensilsCrossed,
-  Upload,
-  FileSpreadsheet,
-  AlertCircle,
-  CheckCircle2,
+  ShoppingBag,
+  Plus,
+  Minus,
+  X,
+  MessageCircle,
+  ArrowLeft,
+  Star,
 } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 interface MenuItem {
   id: number;
@@ -25,31 +24,31 @@ interface MenuItem {
   available: boolean;
 }
 
-interface ItemForm {
+interface CartItem {
+  id: number;
   name: string;
-  price: string;
-  category: string;
-  available: boolean;
+  price: number;
+  quantity: number;
 }
 
-const emptyForm: ItemForm = { name: '', price: '', category: '', available: true };
+const WHATSAPP_NUMBER = '917054005885';
 
-export default function MenuPage() {
+export default function PublicMenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<ItemForm>(emptyForm);
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
-  const [showCsvModal, setShowCsvModal] = useState(false);
-  const [csvData, setCsvData] = useState<{ name: string; category: string; price: string }[]>([]);
-  const [csvUploading, setCsvUploading] = useState(false);
-  const [csvResult, setCsvResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [showCart, setShowCart] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     fetchItems();
+    // Check if user is admin
+    const match = document.cookie.match(/pos-user-role=([^;]+)/);
+    if (match && match[1] === 'admin') {
+      setIsAdmin(true);
+    }
   }, []);
 
   const fetchItems = async () => {
@@ -58,7 +57,7 @@ export default function MenuPage() {
       const data = await res.json();
       setItems(data.items);
     } catch {
-      toast.error('Failed to fetch menu items');
+      console.error('Failed to fetch menu');
     } finally {
       setLoading(false);
     }
@@ -74,460 +73,392 @@ export default function MenuPage() {
     return matchSearch && matchCategory;
   });
 
-  const openAddModal = () => {
-    setForm(emptyForm);
-    setEditingId(null);
-    setShowModal(true);
-  };
-
-  const openEditModal = (item: MenuItem) => {
-    setForm({
-      name: item.name,
-      price: String(item.price),
-      category: item.category,
-      available: item.available,
+  const addToCart = (item: MenuItem) => {
+    setCart((prev) => {
+      const existing = prev.find((c) => c.id === item.id);
+      if (existing) {
+        return prev.map((c) =>
+          c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
+        );
+      }
+      return [...prev, { id: item.id, name: item.name, price: item.price, quantity: 1 }];
     });
-    setEditingId(item.id);
-    setShowModal(true);
   };
 
-  const handleSave = async () => {
-    if (!form.name || !form.price || !form.category) {
-      toast.error('All fields are required');
-      return;
-    }
-
-    const price = parseFloat(form.price);
-    if (isNaN(price) || price < 0) {
-      toast.error('Enter a valid price');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const body = {
-        name: form.name,
-        price,
-        category: form.category,
-        available: form.available,
-      };
-
-      let res;
-      if (editingId) {
-        res = await fetch(`/api/menu/${editingId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-      } else {
-        res = await fetch('/api/menu', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-      }
-
-      if (res.ok) {
-        toast.success(editingId ? 'Item updated!' : 'Item added!');
-        setShowModal(false);
-        fetchItems();
-      } else {
-        const data = await res.json();
-        toast.error(data.error || 'Operation failed');
-      }
-    } catch {
-      toast.error('Network error');
-    } finally {
-      setSaving(false);
-    }
+  const updateQuantity = (id: number, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((c) => {
+          if (c.id === id) {
+            const newQty = c.quantity + delta;
+            return newQty > 0 ? { ...c, quantity: newQty } : null;
+          }
+          return c;
+        })
+        .filter(Boolean) as CartItem[]
+    );
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Delete "${name}"?`)) return;
-
-    try {
-      const res = await fetch(`/api/menu/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        toast.success('Item deleted');
-        fetchItems();
-      } else {
-        toast.error('Failed to delete');
-      }
-    } catch {
-      toast.error('Network error');
-    }
+  const removeFromCart = (id: number) => {
+    setCart((prev) => prev.filter((c) => c.id !== id));
   };
+
+  const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
+  const cartCount = cart.reduce((sum, c) => sum + c.quantity, 0);
+
+  const buildWhatsAppMessage = () => {
+    if (cart.length === 0) return '';
+    let msg = '🛒 *New Order from Sip n Snacks Website*\n\n';
+    msg += '📋 *Order Details:*\n';
+    msg += '─────────────────\n';
+    cart.forEach((item, idx) => {
+      msg += `${idx + 1}. ${item.name} × ${item.quantity} = ₹${(item.price * item.quantity).toLocaleString('en-IN')}\n`;
+    });
+    msg += '─────────────────\n';
+    msg += `💰 *Total: ₹${cartTotal.toLocaleString('en-IN')}*\n\n`;
+    msg += '📍 Please confirm my order. Thank you! 🙏';
+    return encodeURIComponent(msg);
+  };
+
+  const openWhatsApp = () => {
+    const message = buildWhatsAppMessage();
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
+    window.open(url, '_blank');
+  };
+
+  const openWhatsAppChat = () => {
+    const msg = encodeURIComponent('Hi! I would like to place an order from Sip n Snacks. 🍽️');
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+  };
+
+  const groupedItems = categories.reduce((acc, cat) => {
+    acc[cat] = filteredItems.filter((item) => item.category === cat);
+    return acc;
+  }, {} as Record<string, MenuItem[]>);
 
   return (
-    <div className="flex min-h-screen">
-      <Navbar />
-      <main className="flex-1 md:ml-64 p-6 pt-16 md:pt-6">
+    <div className="min-h-screen relative">
+      {/* Beautiful Background */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1B2E3C] via-[#1B2E3C]/95 to-amber-900/80" />
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        }} />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Menu Management</h1>
-            <p className="text-gray-500 mt-1">{items.length} items in menu</p>
-          </div>
-          <div className="flex gap-2 mt-4 sm:mt-0">
-            <button
-              onClick={() => { setCsvData([]); setCsvResult(null); setShowCsvModal(true); }}
-              className="btn-secondary flex items-center gap-2 text-sm"
-            >
-              <Upload className="w-4 h-4" />
-              Bulk CSV
-            </button>
-            <button
-              onClick={openAddModal}
-              className="btn-primary flex items-center gap-2 text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add Item
-            </button>
-          </div>
-        </div>
-
-        {/* Search & Filter */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search items..."
-              className="input pl-9 py-2 text-sm"
-            />
-          </div>
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="input w-full sm:w-40 py-2 text-sm"
-          >
-            <option value="">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Items Grid */}
-        {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="card text-center py-12">
-            <UtensilsCrossed className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-500">No items found</p>
-            <button onClick={openAddModal} className="btn-primary mt-4">
-              Add your first item
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {filteredItems.map((item) => (
-              <div
-                key={item.id}
-                className={`p-3 rounded-xl border-2 bg-white hover:shadow-md transition-all ${
-                  !item.available ? 'opacity-50 border-gray-200' : 'border-gray-100 hover:border-amber-200'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-1.5">
-                  <h3 className="font-medium text-gray-900 text-sm leading-tight">{item.name}</h3>
-                  <span className={`shrink-0 ml-1 w-2 h-2 rounded-full mt-1.5 ${item.available ? 'bg-green-500' : 'bg-red-400'}`} />
+        <header className="sticky top-0 z-30 bg-[#1B2E3C]/95 backdrop-blur-md border-b border-white/10">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-white shrink-0">
+                  <Image src="/logo.png" alt="Sip n Snacks" width={40} height={40} className="w-full h-full object-contain" />
                 </div>
-                <p className="text-xs text-gray-500 mb-2">{item.category}</p>
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-gray-900">₹{item.price}</span>
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => openEditModal(item)}
-                      className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-amber-100 text-gray-500 hover:text-amber-700 flex items-center justify-center transition-colors"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.id, item.name)}
-                      className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 flex items-center justify-center transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                <div>
+                  <h1 className="text-lg font-bold text-white">Sip n Snacks</h1>
+                  <p className="text-[10px] text-amber-300/70 tracking-wider uppercase">Cafe · Refreshments · Bites</p>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Add/Edit Modal */}
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold">
-                  {editingId ? 'Edit Item' : 'Add New Item'}
-                </h2>
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Admin
+                  </Link>
+                )}
                 <button
-                  onClick={() => setShowModal(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg"
+                  onClick={() => setShowCart(true)}
+                  className="relative flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium text-sm transition-all"
                 >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Item Name
-                  </label>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="input"
-                    placeholder="e.g., Butter Chicken"
-                    autoFocus
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.price}
-                    onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    className="input"
-                    placeholder="e.g., 250"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category
-                  </label>
-                  <input
-                    type="text"
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="input"
-                    placeholder="e.g., Main Course"
-                    list="categories"
-                  />
-                  <datalist id="categories">
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat} />
-                    ))}
-                  </datalist>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="available"
-                    checked={form.available}
-                    onChange={(e) => setForm({ ...form, available: e.target.checked })}
-                    className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-                  />
-                  <label htmlFor="available" className="text-sm font-medium text-gray-700">
-                    Available for ordering
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="btn-secondary flex-1"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2"
-                >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingId ? 'Update' : 'Add Item'}
+                  <ShoppingBag className="w-4 h-4" />
+                  <span className="hidden sm:inline">Cart</span>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce">
+                      {cartCount}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
           </div>
+        </header>
+
+        {/* Hero Section */}
+        <div className="max-w-7xl mx-auto px-4 pt-8 pb-4">
+          <div className="text-center mb-8">
+            <div className="inline-block mb-4">
+              <div className="w-24 h-24 rounded-full border-2 border-amber-400/50 p-1 bg-white/5 backdrop-blur-sm mx-auto">
+                <div className="w-full h-full rounded-full overflow-hidden relative">
+                  <Image src="/logo.png" alt="Sip n Snacks" fill className="object-cover" />
+                </div>
+              </div>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2">Our Menu</h2>
+            <p className="text-amber-200/60 text-sm max-w-md mx-auto">
+              Browse our delicious offerings and order directly via WhatsApp. Fresh, tasty, and made with love! ❤️
+            </p>
+            <div className="flex items-center justify-center gap-1 mt-3">
+              {[1,2,3,4,5].map(i => (
+                <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
+              ))}
+              <span className="text-amber-300/60 text-xs ml-1">Loved by our customers</span>
+            </div>
+          </div>
+
+          {/* Search & Filter */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-6 max-w-2xl mx-auto">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search menu items..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all text-sm"
+              />
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              <button
+                onClick={() => setFilterCategory('')}
+                className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                  !filterCategory
+                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
+                    : 'bg-white/10 text-white/70 hover:bg-white/20'
+                }`}
+              >
+                All
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setFilterCategory(cat === filterCategory ? '' : cat)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                    filterCategory === cat
+                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Menu Items */}
+        <div className="max-w-7xl mx-auto px-4 pb-32">
+          {loading ? (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="text-center py-16">
+              <UtensilsCrossed className="w-16 h-16 mx-auto text-white/20 mb-4" />
+              <p className="text-white/50 text-lg">No items found</p>
+              <p className="text-white/30 text-sm mt-1">Try a different search term</p>
+            </div>
+          ) : (
+            Object.entries(groupedItems).map(([category, categoryItems]) => {
+              if (categoryItems.length === 0) return null;
+              return (
+                <div key={category} className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <h3 className="text-lg font-bold text-amber-400">{category}</h3>
+                    <div className="flex-1 h-px bg-amber-400/20" />
+                    <span className="text-xs text-amber-400/50">{categoryItems.length} items</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {categoryItems.map((item) => {
+                      const inCart = cart.find((c) => c.id === item.id);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`group relative p-4 rounded-2xl border transition-all duration-300 ${
+                            !item.available
+                              ? 'opacity-50 bg-white/[0.02] border-white/5'
+                              : inCart
+                                ? 'bg-amber-500/15 border-amber-500/40 shadow-lg shadow-amber-500/10 hover:scale-[1.02]'
+                                : 'bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02]'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-white text-sm truncate">{item.name}</h4>
+                              <p className="text-xs text-white/40 mt-0.5">{item.category}</p>
+                            </div>
+                            <span className={`shrink-0 ml-2 w-2 h-2 rounded-full mt-1.5 ${item.available ? 'bg-green-400' : 'bg-red-400'}`} />
+                          </div>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="text-lg font-bold text-amber-400">₹{item.price}</span>
+                            {!item.available ? (
+                              <span className="text-xs text-red-400/70 font-medium">Unavailable</span>
+                            ) : inCart ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => updateQuantity(item.id, -1)}
+                                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="w-6 text-center font-bold text-white text-sm">{inCart.quantity}</span>
+                                <button
+                                  onClick={() => updateQuantity(item.id, 1)}
+                                  className="w-7 h-7 rounded-full bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center transition-colors"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => addToCart(item)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-white text-xs font-medium transition-all"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                Add
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Floating WhatsApp Chat Button */}
+        <button
+          onClick={openWhatsAppChat}
+          className="fixed bottom-6 left-6 z-40 w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-2xl shadow-green-500/40 flex items-center justify-center transition-all hover:scale-110"
+          title="Chat with us on WhatsApp"
+        >
+          <svg viewBox="0 0 24 24" className="w-7 h-7 fill-white">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+          </svg>
+        </button>
+
+        {/* Floating Cart Bar (when items in cart) */}
+        {cartCount > 0 && !showCart && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 w-[calc(100%-3rem)] max-w-lg">
+            <button
+              onClick={() => setShowCart(true)}
+              className="w-full flex items-center justify-between px-5 py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-2xl shadow-2xl shadow-green-500/40 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  <ShoppingBag className="w-4 h-4" />
+                </div>
+                <span className="font-semibold">{cartCount} item{cartCount > 1 ? 's' : ''} added</span>
+              </div>
+              <span className="font-bold text-lg">₹{cartTotal.toLocaleString('en-IN')}</span>
+            </button>
+          </div>
         )}
 
-        {/* CSV Bulk Upload Modal */}
-        {showCsvModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => !csvUploading && setShowCsvModal(false)}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <FileSpreadsheet className="w-5 h-5 text-green-600" />
-                  Bulk CSV Upload
-                </h2>
-                <button onClick={() => !csvUploading && setShowCsvModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
-                  <X className="w-5 h-5" />
+        {/* Cart Drawer */}
+        {showCart && (
+          <>
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={() => setShowCart(false)} />
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#1B2E3C] rounded-t-3xl max-h-[85vh] flex flex-col animate-slideUp">
+              {/* Cart Header */}
+              <div className="flex items-center justify-between p-5 border-b border-white/10">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-amber-400" />
+                  Your Order
+                </h3>
+                <button onClick={() => setShowCart(false)} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                  <X className="w-5 h-5 text-white/70" />
                 </button>
               </div>
 
-              {/* Instructions */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm">
-                <p className="font-medium text-blue-800 mb-1">CSV Format (3 columns):</p>
-                <code className="text-blue-700 text-xs bg-blue-100 px-2 py-1 rounded block">Item,Category,Price</code>
-                <p className="text-blue-600 text-xs mt-1">First row can be a header (auto-detected). Example:</p>
-                <pre className="text-blue-600 text-xs mt-1 bg-blue-100 p-2 rounded">
-{`Masala Chai,Beverages,30
-Samosa,Snacks,20
-Paneer Tikka,Starters,180`}
-                </pre>
+              {/* Cart Items */}
+              <div className="flex-1 overflow-auto p-5 space-y-3">
+                {cart.length === 0 ? (
+                  <div className="text-center py-8">
+                    <ShoppingBag className="w-12 h-12 mx-auto text-white/20 mb-3" />
+                    <p className="text-white/40">Your cart is empty</p>
+                    <p className="text-white/20 text-sm mt-1">Add items from the menu</p>
+                  </div>
+                ) : (
+                  cart.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-white text-sm truncate">{item.name}</p>
+                        <p className="text-xs text-white/40">₹{item.price} each</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(item.id, -1)}
+                          className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="w-6 text-center font-bold text-white text-sm">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.id, 1)}
+                          className="w-7 h-7 rounded-full bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="text-right ml-2">
+                        <p className="font-bold text-white text-sm">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
+                        <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-300">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
-              {/* File Input */}
-              {!csvResult && (
-                <>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    className="hidden"
-                    id="csv-upload"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = (ev) => {
-                        const text = ev.target?.result as string;
-                        const lines = text.split('\n').map((l) => l.trim()).filter((l) => l);
-                        const parsed: { name: string; category: string; price: string }[] = [];
-                        for (let i = 0; i < lines.length; i++) {
-                          const cols = lines[i].split(',').map((c) => c.trim());
-                          if (cols.length < 3) continue;
-                          // Skip header row
-                          if (i === 0 && (cols[0].toLowerCase() === 'item' || cols[0].toLowerCase() === 'name')) continue;
-                          parsed.push({ name: cols[0], category: cols[1], price: cols[2] });
-                        }
-                        setCsvData(parsed);
-                      };
-                      reader.readAsText(file);
-                      e.target.value = '';
-                    }}
-                  />
-                  <label
-                    htmlFor="csv-upload"
-                    className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-green-400 hover:bg-green-50 transition-all mb-4"
+              {/* Cart Footer */}
+              {cart.length > 0 && (
+                <div className="p-5 border-t border-white/10 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/60 font-medium">Total</span>
+                    <span className="text-2xl font-bold text-white">₹{cartTotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  <button
+                    onClick={openWhatsApp}
+                    className="w-full flex items-center justify-center gap-3 py-3.5 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-500/30 transition-all text-lg"
                   >
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <p className="text-sm font-medium text-gray-700">Click to select CSV file</p>
-                    <p className="text-xs text-gray-400">or drag & drop</p>
-                  </label>
-                </>
-              )}
-
-              {/* Preview */}
-              {csvData.length > 0 && !csvResult && (
-                <>
-                  <div className="mb-3">
-                    <p className="text-sm font-semibold text-gray-700 mb-2">
-                      Preview ({csvData.length} items):
-                    </p>
-                    <div className="border rounded-lg overflow-hidden max-h-48 overflow-y-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50 sticky top-0">
-                          <tr>
-                            <th className="text-left px-3 py-2 text-gray-600">#</th>
-                            <th className="text-left px-3 py-2 text-gray-600">Item</th>
-                            <th className="text-left px-3 py-2 text-gray-600">Category</th>
-                            <th className="text-right px-3 py-2 text-gray-600">Price</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {csvData.map((row, idx) => (
-                            <tr key={idx} className="border-t">
-                              <td className="px-3 py-1.5 text-gray-400">{idx + 1}</td>
-                              <td className="px-3 py-1.5 font-medium">{row.name}</td>
-                              <td className="px-3 py-1.5 text-gray-600">{row.category}</td>
-                              <td className="px-3 py-1.5 text-right">₹{row.price}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={() => setCsvData([])} className="btn-secondary flex-1">Clear</button>
-                    <button
-                      onClick={async () => {
-                        setCsvUploading(true);
-                        try {
-                          const res = await fetch('/api/menu/bulk', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ items: csvData }),
-                          });
-                          const data = await res.json();
-                          setCsvResult({ success: data.success, failed: data.failed, errors: data.errors || [] });
-                          if (data.success > 0) {
-                            toast.success(`${data.success} items added!`);
-                            fetchItems();
-                          }
-                          if (data.failed > 0) {
-                            toast.error(`${data.failed} items failed`);
-                          }
-                        } catch {
-                          toast.error('Upload failed');
-                        } finally {
-                          setCsvUploading(false);
-                        }
-                      }}
-                      disabled={csvUploading}
-                      className="btn-primary flex-1 flex items-center justify-center gap-2"
-                    >
-                      {csvUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                      {csvUploading ? 'Uploading...' : `Upload ${csvData.length} Items`}
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {/* Result */}
-              {csvResult && (
-                <div className="space-y-3">
-                  <div className="flex gap-4">
-                    {csvResult.success > 0 && (
-                      <div className="flex-1 bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                        <CheckCircle2 className="w-6 h-6 text-green-500 mx-auto mb-1" />
-                        <p className="text-2xl font-bold text-green-700">{csvResult.success}</p>
-                        <p className="text-xs text-green-600">Added</p>
-                      </div>
-                    )}
-                    {csvResult.failed > 0 && (
-                      <div className="flex-1 bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                        <AlertCircle className="w-6 h-6 text-red-500 mx-auto mb-1" />
-                        <p className="text-2xl font-bold text-red-700">{csvResult.failed}</p>
-                        <p className="text-xs text-red-600">Failed</p>
-                      </div>
-                    )}
-                  </div>
-                  {csvResult.errors.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-h-32 overflow-y-auto">
-                      <p className="text-xs font-semibold text-red-700 mb-1">Errors:</p>
-                      {csvResult.errors.map((err, i) => (
-                        <p key={i} className="text-xs text-red-600">{err}</p>
-                      ))}
-                    </div>
-                  )}
-                  <button onClick={() => { setShowCsvModal(false); setCsvData([]); setCsvResult(null); }} className="btn-primary w-full">
-                    Done
+                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                    Order via WhatsApp
+                  </button>
+                  <button
+                    onClick={() => setCart([])}
+                    className="w-full text-sm text-white/40 hover:text-red-400 flex items-center justify-center gap-1 py-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Clear Cart
                   </button>
                 </div>
               )}
             </div>
-          </div>
+          </>
         )}
-      </main>
+      </div>
+
+      {/* Slide-up animation */}
+      <style jsx>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
