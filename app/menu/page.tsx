@@ -100,15 +100,13 @@ export default function PublicMenuPage() {
 
   const buildWhatsAppMessage = () => {
     if (cart.length === 0) return '';
-    let msg = '🛒 *New Order from Sip n Snacks Website*\n\n';
-    msg += '📋 *Order Details:*\n';
-    msg += '─────────────────\n';
+    let msg = '*New Order - Sip n Snacks*\n\n';
+    msg += '*Order Details:*\n';
     cart.forEach((item, idx) => {
-      msg += `${idx + 1}. ${item.name} × ${item.quantity} = ₹${(item.price * item.quantity).toLocaleString('en-IN')}\n`;
+      msg += `${idx + 1}. ${item.name} x ${item.quantity} = Rs.${(item.price * item.quantity).toLocaleString('en-IN')}\n`;
     });
-    msg += '─────────────────\n';
-    msg += `💰 *Total: ₹${cartTotal.toLocaleString('en-IN')}*\n\n`;
-    msg += '📍 Please confirm my order. Thank you! 🙏';
+    msg += `\n*Total: Rs.${cartTotal.toLocaleString('en-IN')}*\n\n`;
+    msg += 'Please confirm my order. Thank you!';
     return encodeURIComponent(msg);
   };
 
