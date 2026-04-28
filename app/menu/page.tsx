@@ -162,15 +162,6 @@ export default function PublicMenuPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {isAdmin && (
-                  <Link
-                    href="/dashboard"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    Admin
-                  </Link>
-                )}
                 <button
                   onClick={() => setShowCart(true)}
                   className="relative flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium text-sm transition-all"
@@ -336,7 +327,7 @@ export default function PublicMenuPage() {
         {/* Floating WhatsApp Chat Button */}
         <button
           onClick={openWhatsAppChat}
-          className="fixed bottom-6 left-6 z-40 w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-2xl shadow-green-500/40 flex items-center justify-center transition-all hover:scale-110"
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-2xl shadow-green-500/40 flex items-center justify-center transition-all hover:scale-110"
           title="Chat with us on WhatsApp"
         >
           <svg viewBox="0 0 24 24" className="w-7 h-7 fill-white">
