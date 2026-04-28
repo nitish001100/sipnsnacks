@@ -203,29 +203,47 @@ export default function PublicMenuPage() {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-[#1B2E3C]">
-      {/* Compact Header */}
-      <header className="shrink-0 bg-[#1B2E3C] border-b border-white/10 px-4 py-2.5">
+    <div className="h-screen flex flex-col bg-[#1B2E3C] relative">
+      {/* Background Watermark Logo */}
+      <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center" aria-hidden="true">
+        <img
+          src="/logo.png"
+          alt=""
+          className="w-[50vmin] h-[50vmin] max-w-[400px] max-h-[400px] object-contain opacity-[0.04]"
+          style={{ filter: 'blur(2px) grayscale(30%)' }}
+        />
+      </div>
+
+      {/* Header with centered logo */}
+      <header className="shrink-0 bg-[#1B2E3C]/95 backdrop-blur-sm border-b border-white/10 px-4 py-3 relative z-10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-white shrink-0">
-              <Image src="/logo.png" alt="Sip n Snacks" width={32} height={32} className="w-full h-full object-contain" />
+          {/* Mobile cart button - left placeholder for centering */}
+          <div className="w-20 lg:w-0" />
+
+          {/* Centered Logo + Title */}
+          <div className="flex flex-col items-center">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-white shrink-0 border-2 border-amber-400/40">
+              <Image src="/logo.png" alt="Sip n Snacks" width={40} height={40} className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-base font-bold text-white">Our Menu</h1>
+            <h1 className="text-sm font-bold text-white mt-1">Our Menu</h1>
           </div>
+
           {/* Mobile cart button */}
-          <button
-            onClick={() => setShowMobileCart(true)}
-            className="lg:hidden relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white font-medium text-sm transition-all"
-          >
-            <ShoppingBag className="w-4 h-4" />
-            Cart
-            {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                {cartCount}
-              </span>
-            )}
-          </button>
+          <div className="w-20 flex justify-end lg:hidden">
+            <button
+              onClick={() => setShowMobileCart(true)}
+              className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white font-medium text-xs transition-all"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              Cart
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
+          <div className="hidden lg:block w-0" />
         </div>
       </header>
 
