@@ -88,6 +88,7 @@ export interface Order {
   order_number: string;
   total_amount: number;
   status: string;
+  source: string; // 'online' | 'offline'
   created_at: string;
 }
 
@@ -106,13 +107,22 @@ export interface OrderWithItems extends Order {
 }
 
 export async function createOrder(
-  items: { menu_item_id: number; item_name: string; quantity: number; price: number }[]
+  items: { menu_item_id: number; item_name: string; quantity: number; price: number }[],
+  source: string = 'offline'
 ) {
   const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // Ensure source column exists (safe migration)
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'offline';
+      EXCEPTION WHEN others THEN NULL;
+      END $$;
+    `);
 
     // Generate daily sequential order number using MAX inside transaction
     const now = new Date();
@@ -128,10 +138,10 @@ export async function createOrder(
     const dailySeq = maxRows[0].next_seq;
     const orderNumber = `${prefix}${String(dailySeq).padStart(3, '0')}`;
 
-    // Create order
+    // Create order with source
     const { rows: orderRows } = await client.query(
-      'INSERT INTO orders (order_number, total_amount) VALUES ($1, $2) RETURNING *',
-      [orderNumber, totalAmount]
+      'INSERT INTO orders (order_number, total_amount, source) VALUES ($1, $2, $3) RETURNING *',
+      [orderNumber, totalAmount, source]
     );
     const order = orderRows[0];
 

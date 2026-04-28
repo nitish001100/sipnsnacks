@@ -110,10 +110,35 @@ export default function PublicMenuPage() {
     return encodeURIComponent(msg);
   };
 
-  const openWhatsApp = () => {
+  const [ordering, setOrdering] = useState(false);
+
+  const openWhatsApp = async () => {
+    // First save order to DB as 'online'
+    setOrdering(true);
+    try {
+      const orderItems = cart.map((c) => ({
+        menu_item_id: c.id,
+        item_name: c.name,
+        quantity: c.quantity,
+        price: c.price,
+      }));
+
+      await fetch('/api/orders/public', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: orderItems }),
+      });
+    } catch {
+      // Still open WhatsApp even if DB save fails
+    } finally {
+      setOrdering(false);
+    }
+
+    // Then open WhatsApp
     const message = buildWhatsAppMessage();
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
     window.open(url, '_blank');
+    setCart([]);
   };
 
   const openWhatsAppChat = () => {

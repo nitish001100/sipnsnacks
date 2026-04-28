@@ -29,6 +29,7 @@ interface KitchenOrder {
   order_number: string;
   total_amount: number;
   status: string;
+  source: string; // 'online' | 'offline'
   created_at: string;
   items: OrderItem[];
 }
@@ -249,8 +250,19 @@ export default function KitchenPage() {
     }
   };
 
+  const [activeTab, setActiveTab] = useState<'all' | 'online' | 'offline'>('all');
+
   const pendingOrders = orders.filter((o) => o.status === 'pending');
   const acceptedOrders = orders.filter((o) => o.status === 'accepted');
+
+  const onlineOrders = orders.filter((o) => o.source === 'online');
+  const offlineOrders = orders.filter((o) => o.source !== 'online');
+
+  const displayOrders = activeTab === 'all'
+    ? [...pendingOrders, ...acceptedOrders]
+    : activeTab === 'online'
+      ? [...pendingOrders, ...acceptedOrders].filter((o) => o.source === 'online')
+      : [...pendingOrders, ...acceptedOrders].filter((o) => o.source !== 'online');
 
   const getDailyNum = (orderNumber: string) =>
     orderNumber.split('-').pop()?.replace(/^0+/, '') || '?';
@@ -331,6 +343,44 @@ export default function KitchenPage() {
           </div>
         )}
 
+        {/* Online / Offline Tabs */}
+        {!loading && orders.length > 0 && (
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'all'
+                  ? 'bg-gray-900 text-white shadow'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              All ({orders.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('online')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                activeTab === 'online'
+                  ? 'bg-green-600 text-white shadow'
+                  : 'bg-green-50 text-green-700 hover:bg-green-100'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+              Online ({onlineOrders.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('offline')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                activeTab === 'offline'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
+              Offline ({offlineOrders.length})
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-10 h-10 animate-spin text-amber-500" />
@@ -341,9 +391,13 @@ export default function KitchenPage() {
             <p className="text-gray-500 text-lg font-medium">No active orders</p>
             <p className="text-gray-400 text-sm mt-1">New orders will appear here automatically</p>
           </div>
+        ) : displayOrders.length === 0 ? (
+          <div className="card text-center py-12">
+            <p className="text-gray-400 text-sm">No {activeTab} orders right now</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {[...pendingOrders, ...acceptedOrders].map((order) => {
+            {displayOrders.map((order) => {
               const isPending = order.status === 'pending';
               const overdue = isPending && isOverdue(order.created_at);
               const mins = getMinutesSince(order.created_at);
@@ -373,9 +427,18 @@ export default function KitchenPage() {
                       overdue ? 'bg-red-500' : isPending ? 'bg-yellow-400' : 'bg-orange-400'
                     }`}
                   >
-                    <span className="text-2xl font-black text-white">
-                      #{getDailyNum(order.order_number)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-black text-white">
+                        #{getDailyNum(order.order_number)}
+                      </span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                        order.source === 'online'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-blue-600 text-white'
+                      }`}>
+                        {order.source === 'online' ? 'ONLINE' : 'OFFLINE'}
+                      </span>
+                    </div>
                     <div className="text-right">
                       <span className="text-white/90 text-xs font-semibold block">
                         {overdue ? '🚨 OVERDUE' : isPending ? '⌚ NEW ORDER' : '🔥 COOKING'}
@@ -472,9 +535,16 @@ export default function KitchenPage() {
                   className="rounded-lg border border-green-200 bg-green-50/50 p-3"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-green-700">
-                      #{getDailyNum(order.order_number)}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-bold text-green-700">
+                        #{getDailyNum(order.order_number)}
+                      </span>
+                      <span className={`text-[8px] font-bold px-1 py-0.5 rounded ${
+                        order.source === 'online' ? 'bg-green-200 text-green-800' : 'bg-blue-200 text-blue-800'
+                      }`}>
+                        {order.source === 'online' ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
                     <span className="text-green-500 text-xs font-medium">✓ Done</span>
                   </div>
                   <div className="space-y-1">
