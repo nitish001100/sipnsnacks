@@ -221,11 +221,11 @@ export default function PublicMenuPage() {
           <div className="w-20 lg:w-0" />
 
           {/* Centered Logo + Title */}
-          <div className="flex flex-col items-center">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-white shrink-0 border-2 border-amber-400/40">
-              <Image src="/logo.png" alt="Sip n Snacks" width={40} height={40} className="w-full h-full object-contain" />
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-full overflow-hidden bg-white shrink-0 border-2 border-amber-400/50 shadow-lg shadow-amber-500/20">
+              <Image src="/logo.png" alt="Sip n Snacks" width={56} height={56} className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-sm font-bold text-white mt-1">Our Menu</h1>
+            <h1 className="text-xl font-bold text-white">Menu</h1>
           </div>
 
           {/* Mobile cart button */}
