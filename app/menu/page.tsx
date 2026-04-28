@@ -190,15 +190,6 @@ export default function PublicMenuPage() {
               </div>
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2">Our Menu</h2>
-            <p className="text-amber-200/60 text-sm max-w-md mx-auto">
-              Browse our delicious offerings and order directly via WhatsApp. Fresh, tasty, and made with love! ❤️
-            </p>
-            <div className="flex items-center justify-center gap-1 mt-3">
-              {[1,2,3,4,5].map(i => (
-                <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
-              ))}
-              <span className="text-amber-300/60 text-xs ml-1">Loved by our customers</span>
-            </div>
           </div>
 
           {/* Search & Filter */}
@@ -322,6 +313,22 @@ export default function PublicMenuPage() {
               );
             })
           )}
+        </div>
+
+        {/* Footer / Feedback Section */}
+        <div className="max-w-7xl mx-auto px-4 pb-32">
+          <div className="border-t border-white/10 pt-8 text-center">
+            <p className="text-amber-200/50 text-sm max-w-md mx-auto">
+              Browse our delicious offerings and order directly via WhatsApp. Fresh, tasty, and made with love! ❤️
+            </p>
+            <div className="flex items-center justify-center gap-1 mt-3">
+              {[1,2,3,4,5].map(i => (
+                <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
+              ))}
+              <span className="text-amber-300/50 text-xs ml-1">Loved by our customers</span>
+            </div>
+            <p className="text-white/20 text-xs mt-4">© {new Date().getFullYear()} Sip n Snacks. All rights reserved.</p>
+          </div>
         </div>
 
         {/* Floating WhatsApp Chat Button */}
