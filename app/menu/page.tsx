@@ -117,7 +117,7 @@ export default function PublicMenuPage() {
   };
 
   const openWhatsAppChat = () => {
-    const msg = encodeURIComponent('Hi! I would like to place an order from Sip n Snacks. 🍽️');
+    const msg = encodeURIComponent('Hi! I would like to place an order from Sip n Snacks.');
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
   };
 
