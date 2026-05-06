@@ -34,6 +34,9 @@ async function migrate() {
         price DECIMAL(10, 2) NOT NULL,
         category VARCHAR(100) NOT NULL,
         available BOOLEAN DEFAULT true,
+        has_variants BOOLEAN DEFAULT false,
+        half_price DECIMAL(10, 2),
+        full_price DECIMAL(10, 2),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       )
@@ -60,7 +63,8 @@ async function migrate() {
         item_name VARCHAR(255) NOT NULL,
         quantity INTEGER NOT NULL,
         price DECIMAL(10, 2) NOT NULL,
-        subtotal DECIMAL(10, 2) NOT NULL
+        subtotal DECIMAL(10, 2) NOT NULL,
+        variant VARCHAR(20)
       )
     `);
     console.log('✅ Created table: order_items');

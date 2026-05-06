@@ -20,6 +20,9 @@ interface MenuItem {
   price: number;
   category: string;
   available: boolean;
+  has_variants: boolean;
+  half_price: number | null;
+  full_price: number | null;
 }
 
 interface CartItem {
@@ -27,6 +30,7 @@ interface CartItem {
   name: string;
   price: number;
   quantity: number;
+  variant?: string; // 'half' | 'full' | undefined
 }
 
 const WHATSAPP_NUMBER = '917054005885';
@@ -38,6 +42,7 @@ export default function PublicMenuPage() {
   const [filterCategory, setFilterCategory] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [variantPicker, setVariantPicker] = useState<MenuItem | null>(null);
 
   useEffect(() => {
     fetchItems();
@@ -65,23 +70,38 @@ export default function PublicMenuPage() {
     return matchSearch && matchCategory;
   });
 
-  const addToCart = (item: MenuItem) => {
+  const getCartKey = (id: number, variant?: string) => variant ? `${id}-${variant}` : `${id}`;
+
+  const addToCart = (item: MenuItem, variant?: 'half' | 'full') => {
+    const price = variant === 'half' ? item.half_price! : variant === 'full' ? item.full_price! : item.price;
+    const displayName = variant ? `${item.name} (${variant === 'half' ? 'Half' : 'Full'})` : item.name;
+
     setCart((prev) => {
-      const existing = prev.find((c) => c.id === item.id);
+      const existing = prev.find((c) => c.id === item.id && c.variant === variant);
       if (existing) {
         return prev.map((c) =>
-          c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
+          c.id === item.id && c.variant === variant ? { ...c, quantity: c.quantity + 1 } : c
         );
       }
-      return [...prev, { id: item.id, name: item.name, price: item.price, quantity: 1 }];
+      return [...prev, { id: item.id, name: displayName, price, quantity: 1, variant }];
     });
+    setVariantPicker(null);
   };
 
-  const updateQuantity = (id: number, delta: number) => {
+  const handleItemClick = (item: MenuItem) => {
+    if (!item.available) return;
+    if (item.has_variants && item.half_price && item.full_price) {
+      setVariantPicker(item);
+    } else {
+      addToCart(item);
+    }
+  };
+
+  const updateQuantity = (id: number, variant: string | undefined, delta: number) => {
     setCart((prev) =>
       prev
         .map((c) => {
-          if (c.id === id) {
+          if (c.id === id && c.variant === variant) {
             const newQty = c.quantity + delta;
             return newQty > 0 ? { ...c, quantity: newQty } : null;
           }
@@ -91,12 +111,16 @@ export default function PublicMenuPage() {
     );
   };
 
-  const removeFromCart = (id: number) => {
-    setCart((prev) => prev.filter((c) => c.id !== id));
+  const removeFromCart = (id: number, variant: string | undefined) => {
+    setCart((prev) => prev.filter((c) => !(c.id === id && c.variant === variant)));
   };
 
   const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
   const cartCount = cart.reduce((sum, c) => sum + c.quantity, 0);
+
+  const getItemCartTotal = (itemId: number) => {
+    return cart.filter((c) => c.id === itemId).reduce((sum, c) => sum + c.quantity, 0);
+  };
 
   const buildWhatsAppMessage = () => {
     if (cart.length === 0) return '';
@@ -121,6 +145,7 @@ export default function PublicMenuPage() {
         item_name: c.name,
         quantity: c.quantity,
         price: c.price,
+        variant: c.variant,
       }));
 
       await fetch('/api/orders/public', {
@@ -165,21 +190,28 @@ export default function PublicMenuPage() {
         ) : (
           <div className="space-y-2">
             {cart.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+              <div key={getCartKey(item.id, item.variant)} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-white text-sm truncate">{item.name}</p>
-                  <p className="text-xs text-white/40">₹{item.price} each</p>
+                  <p className="text-xs text-white/40">
+                    ₹{item.price} each
+                    {item.variant && (
+                      <span className="ml-1 inline-block bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                        {item.variant === 'half' ? 'HALF' : 'FULL'}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
-                    onClick={() => updateQuantity(item.id, -1)}
+                    onClick={() => updateQuantity(item.id, item.variant, -1)}
                     className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
                   >
                     <Minus className="w-3 h-3" />
                   </button>
                   <span className="w-5 text-center font-bold text-white text-sm">{item.quantity}</span>
                   <button
-                    onClick={() => updateQuantity(item.id, 1)}
+                    onClick={() => updateQuantity(item.id, item.variant, 1)}
                     className="w-6 h-6 rounded-full bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center"
                   >
                     <Plus className="w-3 h-3" />
@@ -187,7 +219,7 @@ export default function PublicMenuPage() {
                 </div>
                 <div className="text-right shrink-0">
                   <p className="font-bold text-white text-sm">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
-                  <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-300 mt-0.5">
+                  <button onClick={() => removeFromCart(item.id, item.variant)} className="text-red-400 hover:text-red-300 mt-0.5">
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
@@ -338,30 +370,37 @@ export default function PublicMenuPage() {
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
                       {categoryItems.map((item) => {
-                        const inCart = cart.find((c) => c.id === item.id);
+                        const inCartTotal = getItemCartTotal(item.id);
                         return (
                           <button
                             key={item.id}
-                            onClick={() => item.available && addToCart(item)}
+                            onClick={() => handleItemClick(item)}
                             disabled={!item.available}
                             className={`p-3 rounded-xl border text-left transition-all ${
                               !item.available
                                 ? 'opacity-40 bg-white/[0.02] border-white/5 cursor-not-allowed'
-                                : inCart
+                                : inCartTotal > 0
                                   ? 'bg-amber-500/15 border-amber-500/30 hover:bg-amber-500/20'
                                   : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                             }`}
                           >
                             <div className="flex items-start justify-between mb-1">
                               <p className="font-medium text-white text-sm leading-tight truncate flex-1">{item.name}</p>
-                              {inCart && (
+                              {inCartTotal > 0 && (
                                 <span className="ml-1 shrink-0 bg-amber-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                                  {inCart.quantity}
+                                  {inCartTotal}
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-amber-400 text-sm">₹{item.price}</span>
+                              {item.has_variants && item.half_price && item.full_price ? (
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-amber-400 text-sm">₹{item.half_price} / ₹{item.full_price}</span>
+                                  <span className="text-[10px] text-white/30">Half / Full</span>
+                                </div>
+                              ) : (
+                                <span className="font-bold text-amber-400 text-sm">₹{item.price}</span>
+                              )}
                               {!item.available && (
                                 <span className="text-[10px] text-red-400/70">Unavailable</span>
                               )}
@@ -443,6 +482,37 @@ export default function PublicMenuPage() {
         </>
       )}
 
+      {/* Variant Picker Modal */}
+      {variantPicker && (
+        <>
+          <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={() => setVariantPicker(null)} />
+          <div className="fixed z-[60] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#1B2E3C] border border-white/10 rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg text-white">{variantPicker.name}</h3>
+              <button onClick={() => setVariantPicker(null)} className="p-1 hover:bg-white/10 rounded-lg">
+                <X className="w-5 h-5 text-white/70" />
+              </button>
+            </div>
+            <p className="text-sm text-white/50 mb-4">Choose portion size:</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => addToCart(variantPicker, 'half')}
+                className="p-4 rounded-xl border-2 border-white/10 hover:border-amber-400 hover:bg-amber-500/10 transition-all text-center"
+              >
+                <p className="text-sm font-medium text-white/70">Half</p>
+                <p className="text-2xl font-bold text-amber-400 mt-1">₹{variantPicker.half_price}</p>
+              </button>
+              <button
+                onClick={() => addToCart(variantPicker, 'full')}
+                className="p-4 rounded-xl border-2 border-white/10 hover:border-green-400 hover:bg-green-500/10 transition-all text-center"
+              >
+                <p className="text-sm font-medium text-white/70">Full</p>
+                <p className="text-2xl font-bold text-green-400 mt-1">₹{variantPicker.full_price}</p>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Slide-up animation */}
       <style jsx>{`

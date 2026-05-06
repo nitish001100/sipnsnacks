@@ -7,6 +7,7 @@ interface BillItem {
   quantity: number;
   price: number;
   subtotal: number;
+  variant?: string | null;
 }
 
 interface BillData {

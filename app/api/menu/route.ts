@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, price, category, available } = await request.json();
+    const { name, price, category, available, has_variants, half_price, full_price } = await request.json();
 
     if (!name || price === undefined || !category) {
       return NextResponse.json(
@@ -40,7 +40,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const item = await createMenuItem(name, price, category, available ?? true);
+    // Validate variant prices if has_variants is true
+    if (has_variants) {
+      if (!half_price || !full_price || half_price <= 0 || full_price <= 0) {
+        return NextResponse.json(
+          { error: 'Half price and Full price are required for variant items' },
+          { status: 400 }
+        );
+      }
+    }
+
+    const item = await createMenuItem(
+      name,
+      price,
+      category,
+      available ?? true,
+      has_variants ?? false,
+      has_variants ? half_price : null,
+      has_variants ? full_price : null
+    );
 
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {

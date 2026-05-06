@@ -22,6 +22,9 @@ interface MenuItem {
   price: number;
   category: string;
   available: boolean;
+  has_variants: boolean;
+  half_price: number | null;
+  full_price: number | null;
 }
 
 interface CartItem {
@@ -29,6 +32,7 @@ interface CartItem {
   item_name: string;
   price: number;
   quantity: number;
+  variant?: string; // 'half' | 'full' | undefined
 }
 
 interface OrderResult {
@@ -41,6 +45,7 @@ interface OrderResult {
     quantity: number;
     price: number;
     subtotal: number;
+    variant?: string;
   }>;
 }
 
@@ -52,6 +57,7 @@ export default function CheckoutPage() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [completedOrder, setCompletedOrder] = useState<OrderResult | null>(null);
+  const [variantPicker, setVariantPicker] = useState<MenuItem | null>(null);
   const billRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,27 +84,54 @@ export default function CheckoutPage() {
     return matchSearch && matchCategory;
   });
 
-  const addToCart = (item: MenuItem) => {
+  // Generate a unique cart key for variant items
+  const getCartKey = (itemId: number, variant?: string) => {
+    return variant ? `${itemId}-${variant}` : `${itemId}`;
+  };
+
+  const addToCart = (item: MenuItem, variant?: 'half' | 'full') => {
+    const price = variant === 'half' ? item.half_price! : variant === 'full' ? item.full_price! : item.price;
+    const displayName = variant ? `${item.name} (${variant === 'half' ? 'Half' : 'Full'})` : item.name;
+
     setCart((prev) => {
-      const existing = prev.find((c) => c.menu_item_id === item.id);
+      const existing = prev.find(
+        (c) => c.menu_item_id === item.id && c.variant === variant
+      );
       if (existing) {
         return prev.map((c) =>
-          c.menu_item_id === item.id ? { ...c, quantity: c.quantity + 1 } : c
+          c.menu_item_id === item.id && c.variant === variant
+            ? { ...c, quantity: c.quantity + 1 }
+            : c
         );
       }
       return [
         ...prev,
-        { menu_item_id: item.id, item_name: item.name, price: item.price, quantity: 1 },
+        {
+          menu_item_id: item.id,
+          item_name: displayName,
+          price,
+          quantity: 1,
+          variant,
+        },
       ];
     });
-    toast.success(`${item.name} added`, { duration: 1000 });
+    toast.success(`${displayName} added`, { duration: 1000 });
+    setVariantPicker(null);
   };
 
-  const updateQuantity = (menuItemId: number, delta: number) => {
+  const handleItemClick = (item: MenuItem) => {
+    if (item.has_variants && item.half_price && item.full_price) {
+      setVariantPicker(item);
+    } else {
+      addToCart(item);
+    }
+  };
+
+  const updateQuantity = (menuItemId: number, variant: string | undefined, delta: number) => {
     setCart((prev) => {
       return prev
         .map((c) => {
-          if (c.menu_item_id === menuItemId) {
+          if (c.menu_item_id === menuItemId && c.variant === variant) {
             const newQty = c.quantity + delta;
             return newQty > 0 ? { ...c, quantity: newQty } : null;
           }
@@ -108,8 +141,8 @@ export default function CheckoutPage() {
     });
   };
 
-  const removeFromCart = (menuItemId: number) => {
-    setCart((prev) => prev.filter((c) => c.menu_item_id !== menuItemId));
+  const removeFromCart = (menuItemId: number, variant: string | undefined) => {
+    setCart((prev) => prev.filter((c) => !(c.menu_item_id === menuItemId && c.variant === variant)));
   };
 
   const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
@@ -182,6 +215,15 @@ export default function CheckoutPage() {
     );
   }
 
+  // Get total quantity of an item in cart (across all variants)
+  const getItemCartInfo = (itemId: number) => {
+    const entries = cart.filter((c) => c.menu_item_id === itemId);
+    return {
+      totalQty: entries.reduce((sum, e) => sum + e.quantity, 0),
+      entries,
+    };
+  };
+
   return (
     <div className="flex min-h-screen">
       <Navbar />
@@ -226,11 +268,12 @@ export default function CheckoutPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                 {filteredMenu.map((item) => {
-                  const inCart = cart.find((c) => c.menu_item_id === item.id);
+                  const cartInfo = getItemCartInfo(item.id);
+                  const inCart = cartInfo.totalQty > 0;
                   return (
                     <button
                       key={item.id}
-                      onClick={() => addToCart(item)}
+                      onClick={() => handleItemClick(item)}
                       className={`p-3 rounded-xl border-2 text-left transition-all hover:shadow-md ${
                         inCart
                           ? 'border-amber-400 bg-amber-50'
@@ -242,12 +285,21 @@ export default function CheckoutPage() {
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">{item.category}</p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="font-bold text-gray-900">
-                          ₹{item.price}
-                        </span>
+                        {item.has_variants && item.half_price && item.full_price ? (
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-gray-900">
+                              ₹{item.half_price} / ₹{item.full_price}
+                            </span>
+                            <span className="text-[10px] text-gray-400">Half / Full</span>
+                          </div>
+                        ) : (
+                          <span className="font-bold text-gray-900">
+                            ₹{item.price}
+                          </span>
+                        )}
                         {inCart && (
                           <span className="bg-amber-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                            {inCart.quantity}
+                            {cartInfo.totalQty}
                           </span>
                         )}
                       </div>
@@ -282,7 +334,7 @@ export default function CheckoutPage() {
                 <div className="space-y-3">
                   {cart.map((item) => (
                     <div
-                      key={item.menu_item_id}
+                      key={getCartKey(item.menu_item_id, item.variant)}
                       className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
                     >
                       <div className="flex-1 min-w-0">
@@ -291,11 +343,16 @@ export default function CheckoutPage() {
                         </p>
                         <p className="text-xs text-gray-500">
                           ₹{item.price} each
+                          {item.variant && (
+                            <span className="ml-1 inline-block bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                              {item.variant === 'half' ? 'HALF' : 'FULL'}
+                            </span>
+                          )}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => updateQuantity(item.menu_item_id, -1)}
+                          onClick={() => updateQuantity(item.menu_item_id, item.variant, -1)}
                           className="w-7 h-7 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                         >
                           <Minus className="w-3 h-3" />
@@ -304,7 +361,7 @@ export default function CheckoutPage() {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.menu_item_id, 1)}
+                          onClick={() => updateQuantity(item.menu_item_id, item.variant, 1)}
                           className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center hover:bg-amber-600"
                         >
                           <Plus className="w-3 h-3" />
@@ -315,7 +372,7 @@ export default function CheckoutPage() {
                           ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                         </p>
                         <button
-                          onClick={() => removeFromCart(item.menu_item_id)}
+                          onClick={() => removeFromCart(item.menu_item_id, item.variant)}
                           className="text-red-400 hover:text-red-600"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -364,6 +421,38 @@ export default function CheckoutPage() {
             )}
           </div>
         </div>
+
+        {/* Variant Picker Modal */}
+        {variantPicker && (
+          <>
+            <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setVariantPicker(null)} />
+            <div className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg text-gray-900">{variantPicker.name}</h3>
+                <button onClick={() => setVariantPicker(null)} className="p-1 hover:bg-gray-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">Choose portion size:</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => addToCart(variantPicker, 'half')}
+                  className="p-4 rounded-xl border-2 border-gray-200 hover:border-amber-400 hover:bg-amber-50 transition-all text-center"
+                >
+                  <p className="text-sm font-medium text-gray-700">Half</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">₹{variantPicker.half_price}</p>
+                </button>
+                <button
+                  onClick={() => addToCart(variantPicker, 'full')}
+                  className="p-4 rounded-xl border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all text-center"
+                >
+                  <p className="text-sm font-medium text-gray-700">Full</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">₹{variantPicker.full_price}</p>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

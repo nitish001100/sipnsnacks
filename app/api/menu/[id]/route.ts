@@ -44,7 +44,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
-    const { name, price, category, available } = await request.json();
+    const { name, price, category, available, has_variants, half_price, full_price } = await request.json();
 
     if (!name || price === undefined || !category || available === undefined) {
       return NextResponse.json(
@@ -53,7 +53,16 @@ export async function PUT(
       );
     }
 
-    const item = await updateMenuItem(id, name, price, category, available);
+    const item = await updateMenuItem(
+      id,
+      name,
+      price,
+      category,
+      available,
+      has_variants ?? false,
+      has_variants ? half_price : null,
+      has_variants ? full_price : null
+    );
     if (!item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }

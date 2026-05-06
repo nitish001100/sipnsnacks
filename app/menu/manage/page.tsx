@@ -23,6 +23,9 @@ interface MenuItem {
   price: number;
   category: string;
   available: boolean;
+  has_variants: boolean;
+  half_price: number | null;
+  full_price: number | null;
 }
 
 interface ItemForm {
@@ -30,9 +33,20 @@ interface ItemForm {
   price: string;
   category: string;
   available: boolean;
+  has_variants: boolean;
+  half_price: string;
+  full_price: string;
 }
 
-const emptyForm: ItemForm = { name: '', price: '', category: '', available: true };
+const emptyForm: ItemForm = {
+  name: '',
+  price: '',
+  category: '',
+  available: true,
+  has_variants: false,
+  half_price: '',
+  full_price: '',
+};
 
 export default function MenuManagePage() {
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -86,30 +100,53 @@ export default function MenuManagePage() {
       price: String(item.price),
       category: item.category,
       available: item.available,
+      has_variants: item.has_variants || false,
+      half_price: item.half_price ? String(item.half_price) : '',
+      full_price: item.full_price ? String(item.full_price) : '',
     });
     setEditingId(item.id);
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.price || !form.category) {
-      toast.error('All fields are required');
+    if (!form.name || !form.category) {
+      toast.error('Name and category are required');
       return;
     }
 
-    const price = parseFloat(form.price);
-    if (isNaN(price) || price < 0) {
-      toast.error('Enter a valid price');
-      return;
+    if (form.has_variants) {
+      const halfPrice = parseFloat(form.half_price);
+      const fullPrice = parseFloat(form.full_price);
+      if (isNaN(halfPrice) || halfPrice <= 0) {
+        toast.error('Enter a valid half price');
+        return;
+      }
+      if (isNaN(fullPrice) || fullPrice <= 0) {
+        toast.error('Enter a valid full price');
+        return;
+      }
+    } else {
+      const price = parseFloat(form.price);
+      if (isNaN(price) || price < 0) {
+        toast.error('Enter a valid price');
+        return;
+      }
     }
 
     setSaving(true);
     try {
+      const halfPrice = parseFloat(form.half_price);
+      const fullPrice = parseFloat(form.full_price);
+      const price = form.has_variants ? halfPrice : parseFloat(form.price);
+
       const body = {
         name: form.name,
         price,
         category: form.category,
         available: form.available,
+        has_variants: form.has_variants,
+        half_price: form.has_variants ? halfPrice : null,
+        full_price: form.has_variants ? fullPrice : null,
       };
 
       let res;
@@ -240,7 +277,13 @@ export default function MenuManagePage() {
                 </div>
                 <p className="text-xs text-gray-500 mb-2">{item.category}</p>
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-gray-900">₹{item.price}</span>
+                  {item.has_variants ? (
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500">H: ₹{item.half_price} | F: ₹{item.full_price}</span>
+                    </div>
+                  ) : (
+                    <span className="font-bold text-gray-900">₹{item.price}</span>
+                  )}
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => openEditModal(item)}
@@ -294,21 +337,6 @@ export default function MenuManagePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.price}
-                    onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    className="input"
-                    placeholder="e.g., 250"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Category
                   </label>
                   <input
@@ -325,6 +353,68 @@ export default function MenuManagePage() {
                     ))}
                   </datalist>
                 </div>
+
+                {/* Variant Toggle */}
+                <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="has_variants"
+                    checked={form.has_variants}
+                    onChange={(e) => setForm({ ...form, has_variants: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                  />
+                  <label htmlFor="has_variants" className="text-sm font-medium text-amber-800">
+                    Has Half / Full pricing
+                  </label>
+                </div>
+
+                {form.has_variants ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Half Price (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={form.half_price}
+                        onChange={(e) => setForm({ ...form, half_price: e.target.value })}
+                        className="input"
+                        placeholder="e.g., 149"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Full Price (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={form.full_price}
+                        onChange={(e) => setForm({ ...form, full_price: e.target.value })}
+                        className="input"
+                        placeholder="e.g., 279"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={form.price}
+                      onChange={(e) => setForm({ ...form, price: e.target.value })}
+                      className="input"
+                      placeholder="e.g., 250"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                )}
 
                 <div className="flex items-center gap-3">
                   <input
@@ -381,9 +471,10 @@ export default function MenuManagePage() {
                 <p className="text-blue-600 text-xs mt-1">First row can be a header (auto-detected). Example:</p>
                 <pre className="text-blue-600 text-xs mt-1 bg-blue-100 p-2 rounded">
 {`Masala Chai,Beverages,30
-Samosa,Snacks,20
-Paneer Tikka,Starters,180`}
+Chilli Paneer,CHINESE (GRAVY/DRY),149 / 179
+Masala Chaap,CHAAP (HALF/FULL),139 / 269`}
                 </pre>
+                <p className="text-blue-600 text-xs mt-1 font-medium">💡 Use &quot;price1 / price2&quot; format for Half/Full pricing!</p>
               </div>
 
               {/* File Input */}
@@ -407,7 +498,8 @@ Paneer Tikka,Starters,180`}
                           if (cols.length < 3) continue;
                           // Skip header row
                           if (i === 0 && (cols[0].toLowerCase() === 'item' || cols[0].toLowerCase() === 'name')) continue;
-                          parsed.push({ name: cols[0], category: cols[1], price: cols[2] });
+                          // Re-join from column 2 onwards as price (in case price has comma in "149 / 179")
+                          parsed.push({ name: cols[0], category: cols[1], price: cols.slice(2).join(',').trim() });
                         }
                         setCsvData(parsed);
                       };
@@ -444,14 +536,26 @@ Paneer Tikka,Starters,180`}
                           </tr>
                         </thead>
                         <tbody>
-                          {csvData.map((row, idx) => (
-                            <tr key={idx} className="border-t">
-                              <td className="px-3 py-1.5 text-gray-400">{idx + 1}</td>
-                              <td className="px-3 py-1.5 font-medium">{row.name}</td>
-                              <td className="px-3 py-1.5 text-gray-600">{row.category}</td>
-                              <td className="px-3 py-1.5 text-right">₹{row.price}</td>
-                            </tr>
-                          ))}
+                          {csvData.map((row, idx) => {
+                            const isVariant = /^\s*\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?\s*$/.test(row.price);
+                            return (
+                              <tr key={idx} className="border-t">
+                                <td className="px-3 py-1.5 text-gray-400">{idx + 1}</td>
+                                <td className="px-3 py-1.5 font-medium">{row.name}</td>
+                                <td className="px-3 py-1.5 text-gray-600">{row.category}</td>
+                                <td className="px-3 py-1.5 text-right">
+                                  {isVariant ? (
+                                    <span className="inline-flex items-center gap-1">
+                                      <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">H/F</span>
+                                      ₹{row.price}
+                                    </span>
+                                  ) : (
+                                    <>₹{row.price}</>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

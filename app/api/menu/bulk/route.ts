@@ -37,25 +37,69 @@ export async function POST(request: Request) {
         results.errors.push(`Row ${row}: Category is required`);
         continue;
       }
-      const price = parseFloat(item.price);
-      if (isNaN(price) || price <= 0) {
-        results.failed++;
-        results.errors.push(`Row ${row}: Invalid price "${item.price}"`);
-        continue;
-      }
 
-      try {
-        await createMenuItem(
-          item.name.trim(),
-          price,
-          item.category.trim(),
-          true
-        );
-        results.success++;
-      } catch (err: unknown) {
-        results.failed++;
-        const msg = err instanceof Error ? err.message : 'Unknown error';
-        results.errors.push(`Row ${row}: ${msg}`);
+      const priceStr = String(item.price).trim();
+
+      // Check if price has variants (e.g., "149 / 179" or "149/179")
+      const variantMatch = priceStr.match(/^\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*$/);
+
+      if (variantMatch) {
+        // Item has half/full pricing
+        const halfPrice = parseFloat(variantMatch[1]);
+        const fullPrice = parseFloat(variantMatch[2]);
+
+        if (isNaN(halfPrice) || halfPrice <= 0) {
+          results.failed++;
+          results.errors.push(`Row ${row}: Invalid half price "${variantMatch[1]}"`);
+          continue;
+        }
+        if (isNaN(fullPrice) || fullPrice <= 0) {
+          results.failed++;
+          results.errors.push(`Row ${row}: Invalid full price "${variantMatch[2]}"`);
+          continue;
+        }
+
+        try {
+          await createMenuItem(
+            item.name.trim(),
+            halfPrice, // Use half_price as default price
+            item.category.trim(),
+            true,
+            true,       // has_variants
+            halfPrice,  // half_price
+            fullPrice   // full_price
+          );
+          results.success++;
+        } catch (err: unknown) {
+          results.failed++;
+          const msg = err instanceof Error ? err.message : 'Unknown error';
+          results.errors.push(`Row ${row}: ${msg}`);
+        }
+      } else {
+        // Single price item
+        const price = parseFloat(priceStr);
+        if (isNaN(price) || price <= 0) {
+          results.failed++;
+          results.errors.push(`Row ${row}: Invalid price "${item.price}"`);
+          continue;
+        }
+
+        try {
+          await createMenuItem(
+            item.name.trim(),
+            price,
+            item.category.trim(),
+            true,
+            false,  // has_variants
+            null,   // half_price
+            null    // full_price
+          );
+          results.success++;
+        } catch (err: unknown) {
+          results.failed++;
+          const msg = err instanceof Error ? err.message : 'Unknown error';
+          results.errors.push(`Row ${row}: ${msg}`);
+        }
       }
     }
 

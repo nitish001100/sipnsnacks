@@ -20,6 +20,9 @@ export interface MenuItem {
   price: number;
   category: string;
   available: boolean;
+  has_variants: boolean;
+  half_price: number | null;
+  full_price: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -43,11 +46,14 @@ export async function createMenuItem(
   name: string,
   price: number,
   category: string,
-  available: boolean = true
+  available: boolean = true,
+  hasVariants: boolean = false,
+  halfPrice: number | null = null,
+  fullPrice: number | null = null
 ) {
   const { rows } = await query<MenuItem>(
-    'INSERT INTO menu_items (name, price, category, available) VALUES ($1, $2, $3, $4) RETURNING *',
-    [name, price, category, available]
+    'INSERT INTO menu_items (name, price, category, available, has_variants, half_price, full_price) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+    [name, price, category, available, hasVariants, halfPrice, fullPrice]
   );
   return rows[0];
 }
@@ -57,11 +63,14 @@ export async function updateMenuItem(
   name: string,
   price: number,
   category: string,
-  available: boolean
+  available: boolean,
+  hasVariants: boolean = false,
+  halfPrice: number | null = null,
+  fullPrice: number | null = null
 ) {
   const { rows } = await query<MenuItem>(
-    'UPDATE menu_items SET name = $1, price = $2, category = $3, available = $4, updated_at = NOW() WHERE id = $5 RETURNING *',
-    [name, price, category, available, id]
+    'UPDATE menu_items SET name = $1, price = $2, category = $3, available = $4, has_variants = $5, half_price = $6, full_price = $7, updated_at = NOW() WHERE id = $8 RETURNING *',
+    [name, price, category, available, hasVariants, halfPrice, fullPrice, id]
   );
   return rows[0] || null;
 }
@@ -100,6 +109,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   subtotal: number;
+  variant: string | null;
 }
 
 export interface OrderWithItems extends Order {
@@ -107,7 +117,7 @@ export interface OrderWithItems extends Order {
 }
 
 export async function createOrder(
-  items: { menu_item_id: number; item_name: string; quantity: number; price: number }[],
+  items: { menu_item_id: number; item_name: string; quantity: number; price: number; variant?: string }[],
   source: string = 'offline'
 ) {
   const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -149,8 +159,8 @@ export async function createOrder(
     for (const item of items) {
       const subtotal = item.price * item.quantity;
       await client.query(
-        'INSERT INTO order_items (order_id, menu_item_id, item_name, quantity, price, subtotal) VALUES ($1, $2, $3, $4, $5, $6)',
-        [order.id, item.menu_item_id, item.item_name, item.quantity, item.price, subtotal]
+        'INSERT INTO order_items (order_id, menu_item_id, item_name, quantity, price, subtotal, variant) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [order.id, item.menu_item_id, item.item_name, item.quantity, item.price, subtotal, item.variant || null]
       );
     }
 
