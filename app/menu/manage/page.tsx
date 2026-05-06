@@ -495,15 +495,16 @@ export default function MenuManagePage() {
 
               {/* Instructions */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm">
-                <p className="font-medium text-blue-800 mb-1">CSV Format (3 columns):</p>
-                <code className="text-blue-700 text-xs bg-blue-100 px-2 py-1 rounded block">Item,Category,Price</code>
-                <p className="text-blue-600 text-xs mt-1">First row can be a header (auto-detected). Example:</p>
+                <p className="font-medium text-blue-800 mb-1">CSV Format:</p>
+                <code className="text-blue-700 text-xs bg-blue-100 px-2 py-1 rounded block">Item, Category, Price1, Price2</code>
+                <p className="text-blue-600 text-xs mt-1">Supports comma or tab separated. First row header auto-skipped.</p>
                 <pre className="text-blue-600 text-xs mt-1 bg-blue-100 p-2 rounded">
 {`Masala Chai,Beverages,30
-Chilli Paneer,CHINESE (GRAVY/DRY),149 / 179
-Masala Chaap,CHAAP (HALF/FULL),139 / 269`}
+Chilli Paneer,CHINESE (GRAVY/DRY),149,179
+Masala Chaap,CHAAP (HALF/FULL),139,269
+Veg Momos,MOMOS (ST./ FRY),59,69`}
                 </pre>
-                <p className="text-blue-600 text-xs mt-1 font-medium">💡 Use &quot;price1 / price2&quot; format for Half/Full pricing!</p>
+                <p className="text-blue-600 text-xs mt-1 font-medium">💡 4 columns = variant pricing! Labels come from brackets: (GRAVY/DRY), (HALF/FULL), etc.</p>
               </div>
 
               {/* File Input */}
@@ -523,12 +524,20 @@ Masala Chaap,CHAAP (HALF/FULL),139 / 269`}
                         const lines = text.split('\n').map((l) => l.trim()).filter((l) => l);
                         const parsed: { name: string; category: string; price: string }[] = [];
                         for (let i = 0; i < lines.length; i++) {
-                          const cols = lines[i].split(',').map((c) => c.trim());
+                          // Handle tab or comma separated
+                          const cols = lines[i].includes('\t')
+                            ? lines[i].split('\t').map((c) => c.trim())
+                            : lines[i].split(',').map((c) => c.trim());
                           if (cols.length < 3) continue;
                           // Skip header row
                           if (i === 0 && (cols[0].toLowerCase() === 'item' || cols[0].toLowerCase() === 'name')) continue;
-                          // Re-join from column 2 onwards as price (in case price has comma in "149 / 179")
-                          parsed.push({ name: cols[0], category: cols[1], price: cols.slice(2).join(',').trim() });
+                          // 4 columns: Name, Category, Price1, Price2 → convert to "price1 / price2"
+                          if (cols.length >= 4 && cols[2] && cols[3] && !isNaN(Number(cols[2])) && !isNaN(Number(cols[3]))) {
+                            parsed.push({ name: cols[0], category: cols[1], price: `${cols[2]} / ${cols[3]}` });
+                          } else {
+                            // 3 columns or "price1 / price2" format
+                            parsed.push({ name: cols[0], category: cols[1], price: cols.slice(2).join(',').trim() });
+                          }
                         }
                         setCsvData(parsed);
                       };

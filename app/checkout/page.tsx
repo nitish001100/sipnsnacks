@@ -60,6 +60,18 @@ export default function CheckoutPage() {
   const [variantPicker, setVariantPicker] = useState<MenuItem | null>(null);
   const billRef = useRef<HTMLDivElement>(null);
 
+  // Extract variant labels from category brackets e.g. "CHINESE (GRAVY/DRY)" → ["Gravy", "Dry"]
+  const getVariantLabels = (category: string): [string, string] => {
+    const match = category.match(/\(([^)]+)\)/);
+    if (match) {
+      const parts = match[1].split('/').map((s) => s.trim());
+      if (parts.length === 2) {
+        return [parts[0], parts[1]];
+      }
+    }
+    return ['Half', 'Full'];
+  };
+
   useEffect(() => {
     fetchMenu();
   }, []);
@@ -91,7 +103,9 @@ export default function CheckoutPage() {
 
   const addToCart = (item: MenuItem, variant?: 'half' | 'full') => {
     const price = variant === 'half' ? item.half_price! : variant === 'full' ? item.full_price! : item.price;
-    const displayName = variant ? `${item.name} (${variant === 'half' ? 'Half' : 'Full'})` : item.name;
+    const labels = getVariantLabels(item.category);
+    const variantLabel = variant === 'half' ? labels[0] : variant === 'full' ? labels[1] : '';
+    const displayName = variant ? `${item.name} (${variantLabel})` : item.name;
 
     setCart((prev) => {
       const existing = prev.find(
@@ -290,7 +304,7 @@ export default function CheckoutPage() {
                             <span className="text-xs font-bold text-gray-900">
                               ₹{item.half_price} / ₹{item.full_price}
                             </span>
-                            <span className="text-[10px] text-gray-400">Half / Full</span>
+                            <span className="text-[10px] text-gray-400">{getVariantLabels(item.category).join(' / ')}</span>
                           </div>
                         ) : (
                           <span className="font-bold text-gray-900">
@@ -433,23 +447,28 @@ export default function CheckoutPage() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-sm text-gray-500 mb-4">Choose portion size:</p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => addToCart(variantPicker, 'half')}
-                  className="p-4 rounded-xl border-2 border-gray-200 hover:border-amber-400 hover:bg-amber-50 transition-all text-center"
-                >
-                  <p className="text-sm font-medium text-gray-700">Half</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">₹{variantPicker.half_price}</p>
-                </button>
-                <button
-                  onClick={() => addToCart(variantPicker, 'full')}
-                  className="p-4 rounded-xl border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all text-center"
-                >
-                  <p className="text-sm font-medium text-gray-700">Full</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">₹{variantPicker.full_price}</p>
-                </button>
-              </div>
+              <p className="text-sm text-gray-500 mb-4">Choose option:</p>
+              {(() => {
+                const labels = getVariantLabels(variantPicker.category);
+                return (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => addToCart(variantPicker, 'half')}
+                      className="p-4 rounded-xl border-2 border-gray-200 hover:border-amber-400 hover:bg-amber-50 transition-all text-center"
+                    >
+                      <p className="text-sm font-medium text-gray-700">{labels[0]}</p>
+                      <p className="text-2xl font-bold text-gray-900 mt-1">₹{variantPicker.half_price}</p>
+                    </button>
+                    <button
+                      onClick={() => addToCart(variantPicker, 'full')}
+                      className="p-4 rounded-xl border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all text-center"
+                    >
+                      <p className="text-sm font-medium text-gray-700">{labels[1]}</p>
+                      <p className="text-2xl font-bold text-gray-900 mt-1">₹{variantPicker.full_price}</p>
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </>
         )}
