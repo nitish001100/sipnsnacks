@@ -101,6 +101,12 @@ export default function PublicMenuPage() {
 
   const handleItemClick = (item: MenuItem) => {
     if (!item.available) return;
+    const inCart = getItemCartTotal(item.id) > 0;
+    if (inCart) {
+      // Remove all variants of this item from cart
+      setCart((prev) => prev.filter((c) => c.id !== item.id));
+      return;
+    }
     if (item.has_variants && item.half_price && item.full_price) {
       setVariantPicker(item);
     } else {

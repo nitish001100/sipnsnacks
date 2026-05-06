@@ -134,6 +134,12 @@ export default function CheckoutPage() {
   };
 
   const handleItemClick = (item: MenuItem) => {
+    const cartInfo = getItemCartInfo(item.id);
+    if (cartInfo.totalQty > 0) {
+      // Remove all variants of this item from cart
+      setCart((prev) => prev.filter((c) => c.menu_item_id !== item.id));
+      return;
+    }
     if (item.has_variants && item.half_price && item.full_price) {
       setVariantPicker(item);
     } else {
