@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getMenuItems, createMenuItem } from '@/lib/db';
 import { getAuthFromHeaders } from '@/lib/auth';
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
 // GET /api/menu - Get all menu items (public)
 export async function GET() {
@@ -65,6 +71,28 @@ export async function POST(request: Request) {
     console.error('Error creating menu item:', error);
     return NextResponse.json(
       { error: 'Failed to create menu item' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/menu - Clear all menu items (requires auth)
+export async function DELETE(request: Request) {
+  try {
+    const auth = getAuthFromHeaders(request);
+    if (!auth) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const result = await pool.query('DELETE FROM menu_items');
+    return NextResponse.json({
+      message: 'All menu items deleted',
+      deleted: result.rowCount ?? 0,
+    });
+  } catch (error) {
+    console.error('Error clearing menu:', error);
+    return NextResponse.json(
+      { error: 'Failed to clear menu items' },
       { status: 500 }
     );
   }

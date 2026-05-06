@@ -61,6 +61,7 @@ export default function MenuManagePage() {
   const [csvData, setCsvData] = useState<{ name: string; category: string; price: string }[]>([]);
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvResult, setCsvResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
+  const [clearingMenu, setClearingMenu] = useState(false);
 
   useEffect(() => {
     fetchItems();
@@ -206,6 +207,34 @@ export default function MenuManagePage() {
             <p className="text-gray-500 mt-1">{items.length} items in menu</p>
           </div>
           <div className="flex gap-2 mt-4 sm:mt-0">
+            {items.length > 0 && (
+              <button
+                onClick={async () => {
+                  if (!confirm(`⚠️ Delete ALL ${items.length} menu items? This cannot be undone!`)) return;
+                  if (!confirm('Are you absolutely sure? Type OK to proceed.')) return;
+                  setClearingMenu(true);
+                  try {
+                    const res = await fetch('/api/menu', { method: 'DELETE' });
+                    if (res.ok) {
+                      const data = await res.json();
+                      toast.success(`🗑️ Cleared ${data.deleted} items`);
+                      fetchItems();
+                    } else {
+                      toast.error('Failed to clear menu');
+                    }
+                  } catch {
+                    toast.error('Network error');
+                  } finally {
+                    setClearingMenu(false);
+                  }
+                }}
+                disabled={clearingMenu}
+                className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                {clearingMenu ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Clear All
+              </button>
+            )}
             <button
               onClick={() => { setCsvData([]); setCsvResult(null); setShowCsvModal(true); }}
               className="btn-secondary flex items-center gap-2 text-sm"
