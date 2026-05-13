@@ -332,6 +332,11 @@ function startPolling() {
   setTimeout(pollForNewOrders, 3000);
   // Periodic polling
   setInterval(pollForNewOrders, POLL_INTERVAL);
+
+  // Self-ping to keep free hosting (Render, etc.) alive
+  setInterval(() => {
+    fetch(`http://localhost:${PORT}/status`).catch(() => {});
+  }, 5 * 60 * 1000); // every 5 min
 }
 
 // Graceful shutdown

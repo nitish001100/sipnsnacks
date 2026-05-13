@@ -1,7 +1,7 @@
 import { Pool, QueryResultRow } from 'pg';
 
 // Create a connection pool
-const pool = new Pool({
+export const pool = new Pool({
   connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
