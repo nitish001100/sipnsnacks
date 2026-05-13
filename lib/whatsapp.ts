@@ -14,6 +14,7 @@ interface OrderDetails {
   total_amount: number;
   customer_name?: string;
   customer_whatsapp?: string;
+  customer_address?: string;
   source: string;
   items: Array<{
     item_name: string;
@@ -56,6 +57,9 @@ function formatOrderMessage(order: OrderDetails): string {
     }
     if (order.customer_whatsapp) {
       msg += `   📱 WhatsApp: ${order.customer_whatsapp}\n`;
+    }
+    if (order.customer_address) {
+      msg += `   📍 Address: ${order.customer_address}\n`;
     }
     msg += `\n`;
   }
