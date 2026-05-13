@@ -278,7 +278,7 @@ function startHttpServer() {
 }
 
 // ========== Order Polling ==========
-const VERCEL_APP_URL = process.env.VERCEL_APP_URL || 'https://sipnsnacks.vercel.app';
+const VERCEL_APP_URL = process.env.VERCEL_APP_URL || 'https://merchant-pos-five.vercel.app';
 const POLL_INTERVAL = 15000; // 15 seconds
 const sentOrderIds = new Set();
 
