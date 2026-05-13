@@ -71,7 +71,7 @@ export default function MenuManagePage() {
     try {
       const res = await fetch('/api/menu');
       const data = await res.json();
-      setItems(data.items);
+      setItems(data.items || []);
     } catch {
       toast.error('Failed to fetch menu items');
     } finally {
