@@ -15,6 +15,8 @@ interface OrderDetails {
   customer_name?: string;
   customer_whatsapp?: string;
   customer_address?: string;
+  customer_lat?: number;
+  customer_lng?: number;
   source: string;
   items: Array<{
     item_name: string;
@@ -60,6 +62,9 @@ function formatOrderMessage(order: OrderDetails): string {
     }
     if (order.customer_address) {
       msg += `   📍 Address: ${order.customer_address}\n`;
+    }
+    if (order.customer_lat && order.customer_lng) {
+      msg += `   🗺️ Maps: https://maps.google.com/?q=${order.customer_lat},${order.customer_lng}\n`;
     }
     msg += `\n`;
   }

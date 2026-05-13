@@ -46,6 +46,9 @@ export default function PublicMenuPage() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+  const [customerLat, setCustomerLat] = useState<number | null>(null);
+  const [customerLng, setCustomerLng] = useState<number | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [showPhonePrompt, setShowPhonePrompt] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [placedOrderNumber, setPlacedOrderNumber] = useState('');
@@ -201,6 +204,7 @@ export default function PublicMenuPage() {
           customer_name: customerName.trim() || undefined,
           customer_whatsapp: customerPhone.trim(),
           customer_address: customerAddress.trim(),
+          ...(customerLat && customerLng ? { customer_lat: customerLat, customer_lng: customerLng } : {}),
         }),
       });
 
@@ -593,7 +597,7 @@ export default function PublicMenuPage() {
               Confirm on WhatsApp
             </a>
             <button
-              onClick={() => { setOrderPlaced(false); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); }}
+              onClick={() => { setOrderPlaced(false); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setCustomerLat(null); setCustomerLng(null); setLocationStatus('idle'); }}
               className="w-full py-2.5 bg-white/10 hover:bg-white/15 text-white/70 font-medium rounded-xl transition-all text-sm"
             >
               Order More
@@ -645,6 +649,50 @@ export default function PublicMenuPage() {
                   placeholder="e.g. Near City Mall, Sector 5"
                   className="w-full px-3 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-white/30 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
                 />
+                {/* Use My Location button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!navigator.geolocation) {
+                      setLocationStatus('error');
+                      return;
+                    }
+                    setLocationStatus('loading');
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        setCustomerLat(pos.coords.latitude);
+                        setCustomerLng(pos.coords.longitude);
+                        setLocationStatus('success');
+                      },
+                      () => setLocationStatus('error'),
+                      { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                  }}
+                  className={`mt-1.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    locationStatus === 'success'
+                      ? 'bg-green-500/15 text-green-400 border border-green-500/20'
+                      : locationStatus === 'loading'
+                        ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20'
+                        : locationStatus === 'error'
+                          ? 'bg-red-500/15 text-red-400 border border-red-500/20'
+                          : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 hover:text-white/60'
+                  }`}
+                >
+                  {locationStatus === 'loading' ? (
+                    <><Loader2 className="w-3 h-3 animate-spin" /> Getting location...</>
+                  ) : locationStatus === 'success' ? (
+                    <>✅ Location captured</>
+                  ) : locationStatus === 'error' ? (
+                    <>❌ Could not get location (try again)</>
+                  ) : (
+                    <>📍 Use My Location (optional)</>
+                  )}
+                </button>
+                {locationStatus === 'success' && customerLat && customerLng && (
+                  <p className="text-[10px] text-white/25 mt-1">
+                    {customerLat.toFixed(5)}, {customerLng.toFixed(5)}
+                  </p>
+                )}
               </div>
               <button
                 onClick={placeOrder}

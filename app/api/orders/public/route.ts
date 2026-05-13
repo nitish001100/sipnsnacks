@@ -6,7 +6,7 @@ import { sendOrderToWhatsAppGroup } from '@/lib/whatsapp';
 // POST /api/orders/public - Create online order (no auth required)
 export async function POST(request: Request) {
   try {
-    const { items, customer_name, customer_whatsapp, customer_address } = await request.json();
+    const { items, customer_name, customer_whatsapp, customer_address, customer_lat, customer_lng } = await request.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -54,6 +54,8 @@ export async function POST(request: Request) {
         customer_name: customer_name || undefined,
         customer_whatsapp: customer_whatsapp || undefined,
         customer_address: customer_address || undefined,
+        customer_lat: customer_lat || undefined,
+        customer_lng: customer_lng || undefined,
         source: 'online',
         items: order.items.map(i => ({
           item_name: i.item_name,
