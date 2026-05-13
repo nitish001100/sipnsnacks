@@ -3,31 +3,31 @@
 /**
  * 🟢 Sip & Snacks WhatsApp Order Notification Bot
  * 
- * 100% FREE — Uses whatsapp-web.js (open source)
+ * 100% FREE — Uses Baileys (lightweight, no Chrome needed)
  * 
  * HOW TO USE:
  * 1. Run: npm run whatsapp:bot
- * 2. Open http://localhost:3001/qr in your browser to scan the QR code
- * 3. The bot will auto-detect the group "sipnsnacks online order"
- * 4. Keep this running — orders will be posted to the group automatically!
+ * 2. Open http://localhost:3001/qr in browser to scan QR
+ * 3. Orders will auto-post to the group!
  */
 
-import pkg from 'whatsapp-web.js';
-const { Client, LocalAuth } = pkg;
+import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import pino from 'pino';
 
 const PORT = process.env.WHATSAPP_BOT_PORT || 3001;
 const GROUP_NAME = process.env.WHATSAPP_GROUP_NAME || 'sipsnacks online order';
+const AUTH_DIR = path.join(process.cwd(), '.wwebjs_auth');
 
-let client = null;
+let sock = null;
 let isReady = false;
 let targetGroupId = null;
-let latestQR = null; // Store latest QR data for web display
+let latestQR = null;
 
-// ========== WhatsApp Client ==========
+const logger = pino({ level: 'silent' }); // Suppress Baileys internal logs
 
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🟢 Sip & Snacks WhatsApp Bot Starting...');
@@ -38,168 +38,156 @@ console.log(`   👉 http://localhost:${PORT}/qr`);
 console.log('');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-client = new Client({
-  authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
-  puppeteer: {
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  },
-});
+// Start HTTP server first (so QR page is available immediately)
+startHttpServer();
 
-client.on('qr', async (qr) => {
-  latestQR = qr;
-  
-  // Save QR code as image file
-  const qrImagePath = path.join(process.cwd(), 'whatsapp-qr.png');
-  try {
-    await QRCode.toFile(qrImagePath, qr, { width: 400, margin: 2 });
-    console.log(`\n📱 QR Code ready! Scan it using one of these methods:`);
-    console.log(`   1. Open in browser: http://localhost:${PORT}/qr`);
-    console.log(`   2. Open image file: ${qrImagePath}`);
-    console.log(`\n   (WhatsApp > Settings > Linked Devices > Link a Device)\n`);
-  } catch (err) {
-    console.error('Error saving QR image:', err);
-  }
-});
+// Connect to WhatsApp
+connectWhatsApp();
 
-client.on('authenticated', () => {
-  latestQR = null; // Clear QR after authentication
-  console.log('✅ WhatsApp authenticated successfully!');
-});
+async function connectWhatsApp() {
+  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+  const { version } = await fetchLatestBaileysVersion();
 
-client.on('auth_failure', (msg) => {
-  console.error('❌ Authentication failed:', msg);
-  console.log('💡 Try deleting the .wwebjs_auth folder and restarting');
-});
+  sock = makeWASocket.default({
+    version,
+    auth: state,
+    logger,
+    printQRInTerminal: false,
+    browser: ['Sip & Snacks Bot', 'Chrome', '120.0.0'],
+    connectTimeoutMs: 60000,
+  });
 
-client.on('ready', async () => {
-  isReady = true;
-  latestQR = null;
-  console.log('✅ WhatsApp client is ready!\n');
-  console.log('⏳ Waiting for WhatsApp to fully load before searching groups...\n');
+  // Save credentials on update
+  sock.ev.on('creds.update', saveCreds);
 
-  // Find the target group with retry (WhatsApp Web needs time to load)
-  await findGroup();
+  // Handle connection updates
+  sock.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect, qr } = update;
 
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🟢 Bot is running! Keep this terminal open.');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-});
-
-async function findGroup(retries = 3) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      // Wait before trying (WhatsApp Web needs time to fully initialize)
-      const waitTime = attempt * 5000;
-      console.log(`   Attempt ${attempt}/${retries} — waiting ${waitTime / 1000}s...`);
-      await new Promise(r => setTimeout(r, waitTime));
-
-      const chats = await client.getChats();
-      const group = chats.find(
-        (chat) => chat.isGroup && chat.name.toLowerCase() === GROUP_NAME.toLowerCase()
-      );
-
-      if (group) {
-        targetGroupId = group.id._serialized;
-        console.log(`\n✅ Found group: "${group.name}" (${targetGroupId})`);
-        return;
-      } else {
-        console.log(`\n⚠️  Group "${GROUP_NAME}" not found!`);
-        console.log('📋 Available groups:');
-        const groups = chats.filter((c) => c.isGroup);
-        if (groups.length === 0) {
-          console.log('   (No groups found)');
-        } else {
-          groups.forEach((g) => console.log(`   • ${g.name}`));
-        }
-        console.log(`\n💡 Create a WhatsApp group called "${GROUP_NAME}" and restart the bot`);
-        return;
-      }
-    } catch (err) {
-      console.log(`   ⚠️ Attempt ${attempt} failed: ${err.message || err}`);
-      if (attempt === retries) {
-        console.log(`\n⚠️  Could not fetch groups. The bot is still running!`);
-        console.log(`   Orders will still work once the group is detected.`);
-        console.log(`   Restart the bot to retry: npm run whatsapp:bot\n`);
+    if (qr) {
+      latestQR = qr;
+      // Save QR as image file
+      const qrImagePath = path.join(process.cwd(), 'whatsapp-qr.png');
+      try {
+        await QRCode.toFile(qrImagePath, qr, { width: 400, margin: 2 });
+        console.log(`\n📱 QR Code ready! Scan it:`);
+        console.log(`   1. Browser: http://localhost:${PORT}/qr`);
+        console.log(`   2. Image:   ${qrImagePath}`);
+        console.log(`\n   (WhatsApp > Settings > Linked Devices > Link a Device)\n`);
+      } catch (err) {
+        console.error('Error saving QR:', err.message);
       }
     }
+
+    if (connection === 'open') {
+      isReady = true;
+      latestQR = null;
+      console.log('✅ WhatsApp connected!\n');
+
+      // Find the target group
+      await findGroup();
+
+      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🟢 Bot is running! Keep this terminal open.');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    }
+
+    if (connection === 'close') {
+      isReady = false;
+      const statusCode = lastDisconnect?.error?.output?.statusCode;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+
+      if (shouldReconnect) {
+        console.log('⚠️ Connection lost. Reconnecting in 3s...');
+        setTimeout(connectWhatsApp, 3000);
+      } else {
+        console.log('❌ Logged out. Delete .wwebjs_auth folder and restart to re-scan QR.');
+      }
+    }
+  });
+}
+
+async function findGroup() {
+  try {
+    console.log('🔍 Searching for group...');
+    
+    // Wait a moment for groups to sync
+    await new Promise(r => setTimeout(r, 3000));
+    
+    const groups = await sock.groupFetchAllParticipating();
+    
+    for (const [id, group] of Object.entries(groups)) {
+      if (group.subject.toLowerCase() === GROUP_NAME.toLowerCase()) {
+        targetGroupId = id;
+        console.log(`\n✅ Found group: "${group.subject}" (${id})`);
+        return;
+      }
+    }
+
+    // Not found — show available groups
+    console.log(`\n⚠️ Group "${GROUP_NAME}" not found!`);
+    console.log('📋 Available groups:');
+    const groupList = Object.values(groups);
+    if (groupList.length === 0) {
+      console.log('   (No groups found)');
+    } else {
+      // Show first 20 groups
+      groupList.slice(0, 20).forEach(g => console.log(`   • ${g.subject}`));
+      if (groupList.length > 20) {
+        console.log(`   ... and ${groupList.length - 20} more`);
+      }
+    }
+    console.log(`\n💡 Create a group called "${GROUP_NAME}" and restart the bot`);
+  } catch (err) {
+    console.error('Error finding groups:', err.message);
   }
 }
 
-client.on('disconnected', (reason) => {
-  isReady = false;
-  targetGroupId = null;
-  console.log('❌ WhatsApp disconnected:', reason);
-  console.log('Attempting to reconnect...');
-  client.initialize();
-});
-
-client.initialize();
-
 // ========== HTTP Server ==========
 
-const server = http.createServer(async (req, res) => {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+function startHttpServer() {
+  const server = http.createServer(async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    res.end();
-    return;
-  }
+    if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
-  // QR Code page (browser-friendly)
-  if (req.method === 'GET' && (req.url === '/qr' || req.url === '/')) {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    
-    if (isReady) {
-      res.end(`
-        <!DOCTYPE html>
-        <html>
-        <head><title>WhatsApp Bot - Connected</title>
+    // QR Code page
+    if (req.method === 'GET' && (req.url === '/qr' || req.url === '/')) {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+
+      if (isReady) {
+        res.end(`<!DOCTYPE html><html><head><title>WhatsApp Bot - Connected</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f0fdf4;text-align:center}
         .card{background:white;border-radius:20px;padding:40px;box-shadow:0 4px 20px rgba(0,0,0,0.1);max-width:400px}
         h1{color:#16a34a;font-size:24px}p{color:#666;margin:10px 0}</style></head>
         <body><div class="card">
           <h1>✅ WhatsApp Connected!</h1>
-          <p>Bot is running and connected to WhatsApp.</p>
-          <p><strong>Group:</strong> ${targetGroupId ? GROUP_NAME : '⚠️ Not found — create the group and restart'}</p>
-          <p style="margin-top:20px;color:#999;font-size:14px">Orders will be automatically posted to the group.</p>
-        </div></body></html>
-      `);
-      return;
-    }
-    
-    if (!latestQR) {
-      res.end(`
-        <!DOCTYPE html>
-        <html>
-        <head><title>WhatsApp Bot - Loading</title>
+          <p>Bot is running and connected.</p>
+          <p><strong>Group:</strong> ${targetGroupId ? GROUP_NAME : '⚠️ Not found'}</p>
+          <p style="margin-top:20px;color:#999;font-size:14px">Orders will be posted to the group.</p>
+        </div></body></html>`);
+        return;
+      }
+
+      if (!latestQR) {
+        res.end(`<!DOCTYPE html><html><head><title>Loading</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta http-equiv="refresh" content="3">
         <style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fffbeb;text-align:center}
         .card{background:white;border-radius:20px;padding:40px;box-shadow:0 4px 20px rgba(0,0,0,0.1);max-width:400px}
         h1{color:#d97706;font-size:24px}.spinner{display:inline-block;width:40px;height:40px;border:4px solid #fbbf24;border-top-color:#d97706;border-radius:50%;animation:spin 1s linear infinite;margin:20px}
         @keyframes spin{to{transform:rotate(360deg)}}</style></head>
-        <body><div class="card">
-          <div class="spinner"></div>
-          <h1>⏳ Loading...</h1>
-          <p>WhatsApp is starting up. This page will refresh automatically.</p>
-        </div></body></html>
-      `);
-      return;
-    }
+        <body><div class="card"><div class="spinner"></div><h1>⏳ Loading...</h1>
+        <p>WhatsApp is starting up. Page will refresh.</p></div></body></html>`);
+        return;
+      }
 
-    // Generate QR code as data URL
-    try {
-      const qrDataUrl = await QRCode.toDataURL(latestQR, { width: 350, margin: 2 });
-      res.end(`
-        <!DOCTYPE html>
-        <html>
-        <head><title>WhatsApp Bot - Scan QR Code</title>
+      try {
+        const qrDataUrl = await QRCode.toDataURL(latestQR, { width: 350, margin: 2 });
+        res.end(`<!DOCTYPE html><html><head><title>Scan QR Code</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta http-equiv="refresh" content="30">
         <style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f0f9ff;text-align:center}
@@ -221,98 +209,81 @@ const server = http.createServer(async (req, res) => {
             <li>Tap <strong>"Link a Device"</strong></li>
             <li>Point your phone camera at this QR code</li>
           </ol>
-        </div></body></html>
-      `);
-    } catch (err) {
-      res.end(`<html><body><h1>Error generating QR code</h1><p>${err.message}</p></body></html>`);
-    }
-    return;
-  }
-
-  // Health/status check
-  if (req.method === 'GET' && req.url === '/status') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status: isReady ? 'connected' : latestQR ? 'waiting_for_scan' : 'initializing',
-      group: targetGroupId ? GROUP_NAME : null,
-      groupId: targetGroupId,
-    }));
-    return;
-  }
-
-  // Send order to WhatsApp group
-  if (req.method === 'POST' && req.url === '/send-order') {
-    let body = '';
-    req.on('data', (chunk) => { body += chunk; });
-    req.on('end', async () => {
-      try {
-        if (!isReady) {
-          res.writeHead(503, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'WhatsApp not connected' }));
-          return;
-        }
-
-        if (!targetGroupId) {
-          res.writeHead(404, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: `Group "${GROUP_NAME}" not found` }));
-          return;
-        }
-
-        const { message } = JSON.parse(body);
-
-        if (!message) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Message is required' }));
-          return;
-        }
-
-        const result = await client.sendMessage(targetGroupId, message);
-        console.log(`📤 Order sent to group! (${new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })})`);
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, messageId: result.id.id }));
+        </div></body></html>`);
       } catch (err) {
-        console.error('Error sending message:', err);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Failed to send message' }));
+        res.end(`<html><body><h1>Error</h1><p>${err.message}</p></body></html>`);
       }
-    });
-    return;
-  }
+      return;
+    }
 
-  // 404
-  res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: 'Not found' }));
-});
+    // Status check
+    if (req.method === 'GET' && req.url === '/status') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: isReady ? 'connected' : latestQR ? 'waiting_for_scan' : 'initializing',
+        group: targetGroupId ? GROUP_NAME : null,
+        groupId: targetGroupId,
+      }));
+      return;
+    }
 
-server.listen(PORT, () => {
-  // Server started
-});
+    // Send order to WhatsApp group
+    if (req.method === 'POST' && req.url === '/send-order') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          if (!isReady || !sock) {
+            res.writeHead(503, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'WhatsApp not connected' }));
+            return;
+          }
+          if (!targetGroupId) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: `Group "${GROUP_NAME}" not found` }));
+            return;
+          }
+
+          const { message } = JSON.parse(body);
+          if (!message) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Message is required' }));
+            return;
+          }
+
+          const result = await sock.sendMessage(targetGroupId, { text: message });
+          console.log(`📤 Order sent to group! (${new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })})`);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, messageId: result.key.id }));
+        } catch (err) {
+          console.error('Error sending:', err.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to send message' }));
+        }
+      });
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+  });
+
+  server.listen(PORT);
+}
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down WhatsApp bot...');
-  // Clean up QR image
+  console.log('\n🛑 Shutting down...');
   try { fs.unlinkSync(path.join(process.cwd(), 'whatsapp-qr.png')); } catch {}
-  if (client) {
-    await client.destroy();
-  }
+  if (sock) sock.end();
   process.exit(0);
 });
 
-process.on('SIGTERM', async () => {
-  try { fs.unlinkSync(path.join(process.cwd(), 'whatsapp-qr.png')); } catch {}
-  if (client) {
-    await client.destroy();
-  }
-  process.exit(0);
-});
-
-// Prevent crashes from unhandled puppeteer errors (WhatsApp Web navigation)
 process.on('uncaughtException', (err) => {
-  console.log(`\n⚠️ Non-fatal error (bot still running): ${err.message}\n`);
+  console.log(`⚠️ Error (bot still running): ${err.message}`);
 });
 
 process.on('unhandledRejection', (err) => {
-  console.log(`\n⚠️ Non-fatal error (bot still running): ${err?.message || err}\n`);
+  console.log(`⚠️ Error (bot still running): ${err?.message || err}`);
 });
