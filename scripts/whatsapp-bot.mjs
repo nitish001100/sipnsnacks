@@ -87,6 +87,11 @@ async function connectWhatsApp() {
       // Find the target group
       await findGroup();
 
+      // Start polling for new orders
+      if (targetGroupId) {
+        startPolling();
+      }
+
       console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('🟢 Bot is running! Keep this terminal open.');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
@@ -270,6 +275,63 @@ function startHttpServer() {
   });
 
   server.listen(PORT);
+}
+
+// ========== Order Polling ==========
+const VERCEL_APP_URL = process.env.VERCEL_APP_URL || 'https://merchant-pos-five.vercel.app';
+const POLL_INTERVAL = 15000; // 15 seconds
+const sentOrderIds = new Set();
+
+async function pollForNewOrders() {
+  if (!isReady || !sock || !targetGroupId) return;
+
+  try {
+    const res = await fetch(`${VERCEL_APP_URL}/api/orders/recent-online`);
+    const data = await res.json();
+
+    if (!data.orders || data.orders.length === 0) return;
+
+    for (const order of data.orders) {
+      if (sentOrderIds.has(order.id)) continue;
+      sentOrderIds.add(order.id);
+
+      // Skip orders older than 2 minutes (on first boot, don't spam old orders)
+      const orderAge = Date.now() - new Date(order.created_at).getTime();
+      if (orderAge > 2 * 60 * 1000 && sentOrderIds.size <= data.orders.length) continue;
+
+      // Format the message
+      const items = order.items || [];
+      let msg = `🛒 *New Online Order!*\n`;
+      msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+      if (order.order_number) msg += `📋 *Order:* #${order.order_number}\n`;
+      if (order.customer_name) msg += `👤 *Customer:* ${order.customer_name}\n`;
+      if (order.customer_whatsapp) msg += `📱 *Phone:* ${order.customer_whatsapp}\n`;
+      msg += `\n*Items:*\n`;
+      items.forEach((item, i) => {
+        msg += `${i + 1}. ${item.item_name} x ${item.quantity} = ₹${Number(item.subtotal).toLocaleString('en-IN')}\n`;
+      });
+      msg += `\n💰 *Total: ₹${Number(order.total_amount).toLocaleString('en-IN')}*`;
+      msg += `\n━━━━━━━━━━━━━━━━━━━━`;
+
+      try {
+        await sock.sendMessage(targetGroupId, { text: msg });
+        console.log(`📤 Order #${order.order_number || order.id} sent to group! (${new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })})`);
+      } catch (err) {
+        console.error(`Error sending order ${order.id}:`, err.message);
+      }
+    }
+  } catch (err) {
+    // Silently fail — will retry next poll
+  }
+}
+
+// Start polling when connected
+function startPolling() {
+  console.log(`🔄 Polling ${VERCEL_APP_URL} for new orders every ${POLL_INTERVAL / 1000}s...\n`);
+  // Initial poll
+  setTimeout(pollForNewOrders, 3000);
+  // Periodic polling
+  setInterval(pollForNewOrders, POLL_INTERVAL);
 }
 
 // Graceful shutdown
