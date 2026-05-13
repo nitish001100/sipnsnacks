@@ -98,6 +98,8 @@ export interface Order {
   total_amount: number;
   status: string;
   source: string; // 'online' | 'offline'
+  customer_whatsapp: string | null;
+  customer_name: string | null;
   created_at: string;
 }
 
@@ -118,7 +120,9 @@ export interface OrderWithItems extends Order {
 
 export async function createOrder(
   items: { menu_item_id: number; item_name: string; quantity: number; price: number; variant?: string }[],
-  source: string = 'offline'
+  source: string = 'offline',
+  customerWhatsapp?: string,
+  customerName?: string
 ) {
   const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -126,10 +130,12 @@ export async function createOrder(
   try {
     await client.query('BEGIN');
 
-    // Ensure source column exists (safe migration)
+    // Ensure columns exist (safe migration)
     await client.query(`
       DO $$ BEGIN
         ALTER TABLE orders ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'offline';
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_whatsapp VARCHAR(20);
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_name VARCHAR(255);
       EXCEPTION WHEN others THEN NULL;
       END $$;
     `);
@@ -148,10 +154,10 @@ export async function createOrder(
     const dailySeq = maxRows[0].next_seq;
     const orderNumber = `${prefix}${String(dailySeq).padStart(3, '0')}`;
 
-    // Create order with source
+    // Create order with source and customer details
     const { rows: orderRows } = await client.query(
-      'INSERT INTO orders (order_number, total_amount, source) VALUES ($1, $2, $3) RETURNING *',
-      [orderNumber, totalAmount, source]
+      'INSERT INTO orders (order_number, total_amount, source, customer_whatsapp, customer_name) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [orderNumber, totalAmount, source, customerWhatsapp || null, customerName || null]
     );
     const order = orderRows[0];
 

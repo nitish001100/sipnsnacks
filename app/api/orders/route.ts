@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createOrder, getOrders } from '@/lib/db';
 import { getAuthFromHeaders } from '@/lib/auth';
 import { notifyKitchen } from '@/lib/push-notify';
+import { sendOrderToWhatsAppGroup } from '@/lib/whatsapp';
 
 // GET /api/orders - Get all orders with pagination
 export async function GET(request: Request) {
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { items } = await request.json();
+    const { items, customer_name, customer_whatsapp } = await request.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -60,13 +61,29 @@ export async function POST(request: Request) {
       }
     }
 
-    const order = await createOrder(items);
+    const order = await createOrder(items, 'offline', customer_whatsapp, customer_name);
 
     // Send push notification to kitchen (non-blocking)
     if (order) {
       const totalItems = items.reduce((sum: number, i: { quantity: number }) => sum + i.quantity, 0);
       const orderNum = order.order_number?.split('-').pop()?.replace(/^0+/, '') || '?';
       notifyKitchen(orderNum, totalItems).catch(() => {});
+
+      // Send WhatsApp group notification (non-blocking)
+      sendOrderToWhatsAppGroup({
+        order_number: order.order_number,
+        total_amount: order.total_amount,
+        customer_name: customer_name || undefined,
+        customer_whatsapp: customer_whatsapp || undefined,
+        source: 'offline',
+        items: order.items.map(i => ({
+          item_name: i.item_name,
+          quantity: i.quantity,
+          price: i.price,
+          subtotal: i.subtotal,
+          variant: i.variant,
+        })),
+      }).catch(() => {});
     }
 
     return NextResponse.json({ order }, { status: 201 });

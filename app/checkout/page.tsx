@@ -12,6 +12,8 @@ import {
   Search,
   X,
   Printer,
+  Phone,
+  User,
 } from 'lucide-react';
 import BillTemplate from '@/components/BillTemplate';
 import toast from 'react-hot-toast';
@@ -58,6 +60,8 @@ export default function CheckoutPage() {
   const [filterCategory, setFilterCategory] = useState('');
   const [completedOrder, setCompletedOrder] = useState<OrderResult | null>(null);
   const [variantPicker, setVariantPicker] = useState<MenuItem | null>(null);
+  const [customerName, setCustomerName] = useState('');
+  const [customerWhatsapp, setCustomerWhatsapp] = useState('');
   const billRef = useRef<HTMLDivElement>(null);
 
   // Extract variant labels from category brackets e.g. "CHINESE (GRAVY/DRY)" → ["Gravy", "Dry"]
@@ -179,13 +183,19 @@ export default function CheckoutPage() {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: cart }),
+        body: JSON.stringify({
+          items: cart,
+          customer_name: customerName.trim() || undefined,
+          customer_whatsapp: customerWhatsapp.trim() || undefined,
+        }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setCompletedOrder(data.order);
         setCart([]);
+        setCustomerName('');
+        setCustomerWhatsapp('');
         toast.success('Order placed successfully!');
       } else {
         const data = await res.json();
@@ -404,9 +414,34 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            {/* Cart Total & Checkout */}
+            {/* Customer Details & Checkout */}
             {cart.length > 0 && (
               <div className="p-4 border-t border-gray-200 bg-gray-50">
+                {/* Customer Details */}
+                <div className="mb-3 space-y-2">
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Customer name (optional)"
+                      className="input pl-9 py-2 text-sm w-full"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                    <input
+                      type="tel"
+                      value={customerWhatsapp}
+                      onChange={(e) => setCustomerWhatsapp(e.target.value)}
+                      placeholder="WhatsApp number (optional)"
+                      maxLength={15}
+                      className="input pl-9 py-2 text-sm w-full"
+                    />
+                  </div>
+                </div>
+
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-gray-600 font-medium">Subtotal</span>
                   <span className="text-xl font-bold">

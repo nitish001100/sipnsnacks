@@ -28,6 +28,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# whatsapp bot session
+.wwebjs_auth
+.wwebjs_cache
+whatsapp-qr.png
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
