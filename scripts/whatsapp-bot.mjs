@@ -20,6 +20,7 @@ import pino from 'pino';
 
 const PORT = process.env.WHATSAPP_BOT_PORT || 3001;
 const GROUP_NAME = process.env.WHATSAPP_GROUP_NAME || 'sipsnacks online order';
+const GROUP_INVITE_CODE = process.env.WHATSAPP_GROUP_INVITE || 'Kp6y7Redb7S2qqrS2dA7GV';
 const AUTH_DIR = path.join(process.cwd(), '.wwebjs_auth');
 
 let sock = null;
@@ -118,13 +119,41 @@ async function findGroup() {
     
     // Wait a moment for groups to sync
     await new Promise(r => setTimeout(r, 3000));
-    
+
+    // Strategy 1: Try to resolve group from invite code
+    if (GROUP_INVITE_CODE) {
+      try {
+        console.log(`🔗 Resolving invite code: ${GROUP_INVITE_CODE}`);
+        const groupInfo = await sock.groupGetInviteInfo(GROUP_INVITE_CODE);
+        if (groupInfo && groupInfo.id) {
+          targetGroupId = groupInfo.id;
+          console.log(`\n✅ Found group via invite: "${groupInfo.subject}" (${groupInfo.id})`);
+          
+          // Check if already in the group
+          const groups = await sock.groupFetchAllParticipating();
+          if (!groups[targetGroupId]) {
+            console.log('📥 Joining group...');
+            try {
+              await sock.groupAcceptInvite(GROUP_INVITE_CODE);
+              console.log('✅ Joined group!');
+            } catch (joinErr) {
+              console.log('ℹ️ Already in group or join not needed');
+            }
+          }
+          return;
+        }
+      } catch (inviteErr) {
+        console.log(`⚠️ Could not resolve invite code: ${inviteErr.message}`);
+      }
+    }
+
+    // Strategy 2: Find by group name
     const groups = await sock.groupFetchAllParticipating();
     
     for (const [id, group] of Object.entries(groups)) {
       if (group.subject.toLowerCase() === GROUP_NAME.toLowerCase()) {
         targetGroupId = id;
-        console.log(`\n✅ Found group: "${group.subject}" (${id})`);
+        console.log(`\n✅ Found group by name: "${group.subject}" (${id})`);
         return;
       }
     }
@@ -136,13 +165,12 @@ async function findGroup() {
     if (groupList.length === 0) {
       console.log('   (No groups found)');
     } else {
-      // Show first 20 groups
-      groupList.slice(0, 20).forEach(g => console.log(`   • ${g.subject}`));
+      groupList.slice(0, 20).forEach(g => console.log(`   • ${g.subject} (${g.id})`));
       if (groupList.length > 20) {
         console.log(`   ... and ${groupList.length - 20} more`);
       }
     }
-    console.log(`\n💡 Create a group called "${GROUP_NAME}" and restart the bot`);
+    console.log(`\n💡 Create a group called "${GROUP_NAME}" or set WHATSAPP_GROUP_INVITE`);
   } catch (err) {
     console.error('Error finding groups:', err.message);
   }
