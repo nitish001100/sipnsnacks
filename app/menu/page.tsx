@@ -66,7 +66,7 @@ export default function PublicMenuPage() {
     try {
       const res = await fetch('/api/menu');
       const data = await res.json();
-      setItems(data.items);
+      setItems(data.items || []);
     } catch {
       console.error('Failed to fetch menu');
     } finally {
