@@ -1,0 +1,14 @@
+{
+  "name": "sipnsnacks-whatsapp-bot",
+  "install": "npm install @whiskeysockets/baileys qrcode pino",
+  "start": "node scripts/whatsapp-bot.mjs",
+  "watch": {
+    "restart": {
+      "exclude": [".wwebjs_auth"]
+    }
+  },
+  "env": {
+    "VERCEL_APP_URL": "https://sipnsnacks.vercel.app",
+    "WHATSAPP_GROUP_INVITE": "Kp6y7Redb7S2qqrS2dA7GV"
+  }
+}
