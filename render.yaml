@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: sipnsnacks-whatsapp-bot
+    runtime: docker
+    dockerfilePath: ./Dockerfile.whatsapp-bot
+    plan: free
+    envVars:
+      - key: VERCEL_APP_URL
+        value: https://sipnsnacks.vercel.app
+      - key: WHATSAPP_GROUP_INVITE
+        value: Kp6y7Redb7S2qqrS2dA7GV

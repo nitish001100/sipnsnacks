@@ -18,7 +18,7 @@ import fs from 'fs';
 import path from 'path';
 import pino from 'pino';
 
-const PORT = process.env.WHATSAPP_BOT_PORT || 3001;
+const PORT = process.env.PORT || process.env.WHATSAPP_BOT_PORT || 3001;
 const GROUP_NAME = process.env.WHATSAPP_GROUP_NAME || 'sipsnacks online order';
 const GROUP_INVITE_CODE = process.env.WHATSAPP_GROUP_INVITE || 'Kp6y7Redb7S2qqrS2dA7GV';
 const AUTH_DIR = path.join(process.cwd(), '.wwebjs_auth');
