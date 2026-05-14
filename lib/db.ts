@@ -136,6 +136,7 @@ export async function createOrder(
         ALTER TABLE orders ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'offline';
         ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_whatsapp VARCHAR(20);
         ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_name VARCHAR(255);
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_address TEXT;
       EXCEPTION WHEN others THEN NULL;
       END $$;
     `);

@@ -24,7 +24,7 @@ export async function GET() {
       FROM orders o
       LEFT JOIN order_items oi ON o.id = oi.order_id
       WHERE o.source = 'online'
-        AND o.created_at > NOW() - INTERVAL '2 hours'
+        AND o.created_at > NOW() - INTERVAL '24 hours'
       GROUP BY o.id
       ORDER BY o.created_at DESC
       LIMIT 20

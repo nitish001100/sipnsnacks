@@ -334,6 +334,7 @@ async function pollForNewOrders() {
       if (order.order_number) msg += `📋 *Order:* #${order.order_number}\n`;
       if (order.customer_name) msg += `👤 *Customer:* ${order.customer_name}\n`;
       if (order.customer_whatsapp) msg += `📱 *Phone:* ${order.customer_whatsapp}\n`;
+      if (order.customer_address) msg += `📍 *Address:* ${order.customer_address}\n`;
       msg += `\n*Items:*\n`;
       items.forEach((item, i) => {
         msg += `${i + 1}. ${item.item_name} x ${item.quantity} = ₹${Number(item.subtotal).toLocaleString('en-IN')}\n`;
