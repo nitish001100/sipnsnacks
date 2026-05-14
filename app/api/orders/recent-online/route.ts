@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 
+// CRITICAL: Disable Vercel caching — this endpoint must always return fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET /api/orders/recent-online — Returns recent online orders (for WhatsApp bot polling)
 // No auth required — only returns order summaries, no sensitive data
 export async function GET() {
@@ -12,6 +16,7 @@ export async function GET() {
         o.total_amount,
         o.customer_name,
         o.customer_whatsapp,
+        o.customer_address,
         o.source,
         o.created_at,
         json_agg(json_build_object(
@@ -30,9 +35,13 @@ export async function GET() {
       LIMIT 20
     `);
 
-    return NextResponse.json({ orders: result.rows });
+    const response = NextResponse.json({ orders: result.rows });
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    return response;
   } catch (error) {
     console.error('Error fetching recent online orders:', error);
-    return NextResponse.json({ orders: [] });
+    const response = NextResponse.json({ orders: [] });
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    return response;
   }
 }

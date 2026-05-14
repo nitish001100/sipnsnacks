@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const order = await createOrder(items, 'online', customer_whatsapp, customer_name);
+    const order = await createOrder(items, 'online', customer_whatsapp, customer_name, customer_address);
 
     // Send push notification to kitchen (non-blocking)
     if (order) {

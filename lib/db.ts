@@ -122,7 +122,8 @@ export async function createOrder(
   items: { menu_item_id: number; item_name: string; quantity: number; price: number; variant?: string }[],
   source: string = 'offline',
   customerWhatsapp?: string,
-  customerName?: string
+  customerName?: string,
+  customerAddress?: string
 ) {
   const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -157,8 +158,8 @@ export async function createOrder(
 
     // Create order with source and customer details
     const { rows: orderRows } = await client.query(
-      'INSERT INTO orders (order_number, total_amount, source, customer_whatsapp, customer_name) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [orderNumber, totalAmount, source, customerWhatsapp || null, customerName || null]
+      'INSERT INTO orders (order_number, total_amount, source, customer_whatsapp, customer_name, customer_address) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [orderNumber, totalAmount, source, customerWhatsapp || null, customerName || null, customerAddress || null]
     );
     const order = orderRows[0];
 
