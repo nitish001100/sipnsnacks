@@ -175,8 +175,12 @@ export default function PublicMenuPage() {
   };
 
   const placeOrder = async () => {
+    if (!customerName.trim()) {
+      alert('Please enter your name');
+      return;
+    }
     if (!customerPhone.trim() || customerPhone.trim().length < 10) {
-      alert('Please enter a valid phone number');
+      alert('Please enter a valid WhatsApp number (10 digits)');
       return;
     }
     if (!customerAddress.trim()) {
@@ -609,7 +613,7 @@ export default function PublicMenuPage() {
             <p className="text-sm text-white/50 mb-4">Enter your details to place the order</p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-white/50 mb-1 block">Name (optional)</label>
+                <label className="text-xs text-white/50 mb-1 block">Name <span className="text-red-400">*</span></label>
                 <input
                   type="text"
                   value={customerName}

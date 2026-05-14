@@ -15,10 +15,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate WhatsApp number for online orders
+    // Validate required fields for online orders
+    if (!customer_name || !customer_name.trim()) {
+      return NextResponse.json(
+        { error: 'Name is required' },
+        { status: 400 }
+      );
+    }
+
     if (!customer_whatsapp || customer_whatsapp.trim().length < 10) {
       return NextResponse.json(
-        { error: 'WhatsApp number is required for online orders' },
+        { error: 'WhatsApp number is required (min 10 digits)' },
+        { status: 400 }
+      );
+    }
+
+    if (!customer_address || !customer_address.trim()) {
+      return NextResponse.json(
+        { error: 'Delivery address is required' },
         { status: 400 }
       );
     }
