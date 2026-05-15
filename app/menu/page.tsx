@@ -35,6 +35,18 @@ interface CartItem {
 
 const WHATSAPP_NUMBER = '917054005885';
 
+// Ordering hours: 10:30 AM to 9:45 PM IST
+const OPEN_HOUR = 10; const OPEN_MIN = 30;
+const CLOSE_HOUR = 21; const CLOSE_MIN = 45;
+
+function isWithinOrderingHours(): boolean {
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const openMinutes = OPEN_HOUR * 60 + OPEN_MIN;   // 10:30 = 630
+  const closeMinutes = CLOSE_HOUR * 60 + CLOSE_MIN; // 21:45 = 1305
+  return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
+}
+
 export default function PublicMenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +64,14 @@ export default function PublicMenuPage() {
   const [showPhonePrompt, setShowPhonePrompt] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [placedOrderNumber, setPlacedOrderNumber] = useState('');
+
+  // Ordering hours check (10:30 AM - 9:45 PM IST)
+  const [isOpen, setIsOpen] = useState(true);
+  useEffect(() => {
+    setIsOpen(isWithinOrderingHours());
+    const timer = setInterval(() => setIsOpen(isWithinOrderingHours()), 30000); // check every 30s
+    return () => clearInterval(timer);
+  }, []);
 
   const getVariantLabels = (category: string): [string, string] => {
     const match = category.match(/\(([^)]+)\)/);
@@ -171,10 +191,21 @@ export default function PublicMenuPage() {
 
   const handleOrderClick = () => {
     if (cart.length === 0) return;
+    if (!isWithinOrderingHours()) {
+      setIsOpen(false);
+      alert('Sorry! We accept orders only between 10:30 AM and 9:45 PM IST. Please try again during our ordering hours.');
+      return;
+    }
     setShowPhonePrompt(true);
   };
 
   const placeOrder = async () => {
+    if (!isWithinOrderingHours()) {
+      setIsOpen(false);
+      alert('Sorry! Ordering is closed. We accept orders between 10:30 AM and 9:45 PM IST.');
+      setShowPhonePrompt(false);
+      return;
+    }
     if (!customerName.trim()) {
       alert('Please enter your name');
       return;
@@ -387,6 +418,19 @@ export default function PublicMenuPage() {
           <div className="hidden lg:block w-0" />
         </div>
       </header>
+
+      {/* Ordering Hours Banner */}
+      {!isOpen && (
+        <div className="shrink-0 bg-red-500/15 border-b border-red-500/30 px-4 py-3 relative z-10">
+          <div className="flex items-center justify-center gap-2 text-center">
+            <span className="text-lg">🕐</span>
+            <div>
+              <p className="text-red-400 font-bold text-sm">We&apos;re currently closed for orders</p>
+              <p className="text-red-400/70 text-xs">Ordering hours: <strong>10:30 AM – 9:45 PM</strong> IST</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content: Menu Left + Cart Right */}
       <div className="flex-1 flex overflow-hidden">
