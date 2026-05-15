@@ -68,8 +68,13 @@ export default function PublicMenuPage() {
   // Ordering hours check (10:30 AM - 9:45 PM IST)
   const [isOpen, setIsOpen] = useState(true);
   useEffect(() => {
-    setIsOpen(isWithinOrderingHours());
-    const timer = setInterval(() => setIsOpen(isWithinOrderingHours()), 30000); // check every 30s
+    const check = () => {
+      const open = isWithinOrderingHours();
+      setIsOpen(open);
+      if (!open) setCart([]); // Clear cart when store closes
+    };
+    check();
+    const timer = setInterval(check, 30000); // check every 30s
     return () => clearInterval(timer);
   }, []);
 
@@ -130,6 +135,7 @@ export default function PublicMenuPage() {
 
   const handleItemClick = (item: MenuItem) => {
     if (!item.available) return;
+    if (!isOpen) return;
     const inCart = getItemCartTotal(item.id) > 0;
     if (inCart) {
       // Remove all variants of this item from cart
@@ -505,9 +511,9 @@ export default function PublicMenuPage() {
                           <button
                             key={item.id}
                             onClick={() => handleItemClick(item)}
-                            disabled={!item.available}
+                            disabled={!item.available || !isOpen}
                             className={`p-3 rounded-xl border text-left transition-all ${
-                              !item.available
+                              !item.available || !isOpen
                                 ? 'opacity-40 bg-white/[0.02] border-white/5 cursor-not-allowed'
                                 : inCartTotal > 0
                                   ? 'bg-amber-500/15 border-amber-500/30 hover:bg-amber-500/20'
