@@ -24,6 +24,9 @@ yarn-error.log*
 
 # local env files
 .env*.local
+whatsapp-bot.log
+whatsapp-bot-error.log
+whatsapp-qr.png
 
 # vercel
 .vercel
