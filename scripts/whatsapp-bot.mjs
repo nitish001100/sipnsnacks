@@ -351,6 +351,7 @@ async function pollForNewOrders() {
       });
       msg += `\n💰 *Total: ₹${Number(order.total_amount).toLocaleString('en-IN')}*`;
       msg += `\n━━━━━━━━━━━━━━━━━━━━`;
+      msg += `\n\n📞 *For queries call:* +91 7054005885`;
 
       try {
         await sock.sendMessage(targetGroupId, { text: msg });
