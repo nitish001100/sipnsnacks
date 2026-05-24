@@ -92,7 +92,7 @@ export async function GET() {
         </div>
 
         <div style="padding: 16px; text-align: center; background: #fef2f2; border-radius: 0 0 12px 12px; border: 1px solid #fecaca; border-top: 0;">
-          <a href="https://sipnsnacks.vercel.app/kitchen" 
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://sipnsnacks.onrender.com'}/kitchen" 
              style="display: inline-block; background: #dc2626; color: white; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
             Open Kitchen Display →
           </a>

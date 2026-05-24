@@ -306,7 +306,7 @@ function startHttpServer() {
 }
 
 // ========== Order Polling ==========
-const VERCEL_APP_URL = process.env.VERCEL_APP_URL || 'https://sipnsnacks.vercel.app';
+const VERCEL_APP_URL = process.env.VERCEL_APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://sipnsnacks.onrender.com';
 const POLL_INTERVAL = 15000; // 15 seconds
 const sentOrderIds = new Set();
 

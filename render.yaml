@@ -1,4 +1,67 @@
+databases:
+  - name: sipnsnacks-db
+    plan: free
+    databaseName: sipnsnacks
+    user: sipnsnacks
+
 services:
+  # Main Next.js web app
+  - type: web
+    name: sipnsnacks
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sipnsnacks-db
+          property: connectionString
+      - key: POSTGRES_URL
+        fromDatabase:
+          name: sipnsnacks-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: NEXT_PUBLIC_APP_NAME
+        value: "Sip n Snacks"
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_VAPID_KEY
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_APP_PASSWORD
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        sync: false
+
+  # WhatsApp bot (optional)
   - type: web
     name: sipnsnacks-whatsapp-bot
     runtime: docker
@@ -6,6 +69,6 @@ services:
     plan: free
     envVars:
       - key: VERCEL_APP_URL
-        value: https://sipnsnacks.vercel.app
+        sync: false
       - key: WHATSAPP_GROUP_INVITE
         value: Kp6y7Redb7S2qqrS2dA7GV

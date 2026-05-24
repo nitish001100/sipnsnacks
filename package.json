@@ -15,7 +15,6 @@
   "dependencies": {
     "@types/nodemailer": "^8.0.0",
     "@types/pg": "^8.20.0",
-    "@vercel/postgres": "^0.10.0",
     "@whiskeysockets/baileys": "^7.0.0-rc11",
     "bcryptjs": "^2.4.3",
     "date-fns": "^3.6.0",
