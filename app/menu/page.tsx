@@ -770,10 +770,10 @@ export default function PublicMenuPage() {
                 {ordering ? 'Placing Order...' : 'Place Order'}
               </button>
               <div className="text-center mt-3 pt-3 border-t border-white/10">
-                <p className="text-white/50 text-xs mb-1.5">Your order will be sent via WhatsApp.<br/>Please call to confirm your order 👇</p>
-                <a href="tel:+917054005885" className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-500/15 hover:bg-green-500/25 border border-green-500/30 rounded-full transition-all">
-                  <span className="text-sm">📞</span>
-                  <span className="text-green-400 font-bold text-sm">+91 7054005885</span>
+                <p className="text-white/50 text-xs mb-2">Your order will be sent via WhatsApp.<br/>Please call to confirm your order 👇</p>
+                <a href="tel:+917054005885" className="inline-flex items-center gap-2 px-5 py-3 bg-green-500/20 hover:bg-green-500/30 border-2 border-green-500/40 rounded-2xl transition-all">
+                  <span className="text-2xl">📞</span>
+                  <span className="text-green-400 font-extrabold text-xl tracking-wide">+91 70540 05885</span>
                 </a>
               </div>
             </div>
