@@ -769,6 +769,13 @@ export default function PublicMenuPage() {
                 )}
                 {ordering ? 'Placing Order...' : 'Place Order'}
               </button>
+              <div className="text-center mt-3 pt-3 border-t border-white/10">
+                <p className="text-white/40 text-xs mb-1">Need help? Call us directly</p>
+                <a href="tel:+917054005885" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 rounded-full transition-all">
+                  <span className="text-sm">📞</span>
+                  <span className="text-blue-400 font-bold text-sm">+91 7054005885</span>
+                </a>
+              </div>
             </div>
           </div>
         </>
