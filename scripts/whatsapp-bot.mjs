@@ -27,6 +27,8 @@ let sock = null;
 let isReady = false;
 let targetGroupId = null;
 let latestQR = null;
+let pollingStarted = false;
+let reconnectCount = 0;
 
 const logger = pino({ level: 'silent' }); // Suppress Baileys internal logs
 
@@ -83,13 +85,19 @@ async function connectWhatsApp() {
     if (connection === 'open') {
       isReady = true;
       latestQR = null;
+      reconnectCount = 0;
       console.log('✅ WhatsApp connected!\n');
 
-      // Find the target group
-      await findGroup();
+      // Only find group if not already found
+      if (!targetGroupId) {
+        await findGroup();
+      } else {
+        console.log(`✅ Using cached group: "${GROUP_NAME}" (${targetGroupId})`);
+      }
 
-      // Start polling for new orders
-      if (targetGroupId) {
+      // Start polling only once
+      if (targetGroupId && !pollingStarted) {
+        pollingStarted = true;
         startPolling();
       }
 
@@ -104,8 +112,10 @@ async function connectWhatsApp() {
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
       if (shouldReconnect) {
-        console.log('⚠️ Connection lost. Reconnecting in 3s...');
-        setTimeout(connectWhatsApp, 3000);
+        reconnectCount++;
+        const delay = Math.min(3000 * reconnectCount, 30000); // Backoff: 3s, 6s, 9s... max 30s
+        console.log(`⚠️ Connection lost. Reconnecting in ${delay / 1000}s... (attempt #${reconnectCount})`);
+        setTimeout(connectWhatsApp, delay);
       } else {
         console.log('❌ Logged out. Delete .wwebjs_auth folder and restart to re-scan QR.');
       }

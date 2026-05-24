@@ -425,6 +425,25 @@ export default function PublicMenuPage() {
         </div>
       </header>
 
+      {/* Zomato & Swiggy Banner */}
+      <div className="shrink-0 bg-gradient-to-r from-[#E23744]/15 via-[#FC8019]/10 to-[#E23744]/15 border-b border-white/10 px-4 py-2 relative z-10">
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          <span className="text-white/50 text-xs font-medium">Also order on</span>
+          <a href="https://zomato.com" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1 bg-[#E23744]/20 hover:bg-[#E23744]/30 border border-[#E23744]/30 rounded-full transition-all">
+            <span className="text-sm">🍽️</span>
+            <span className="text-[#E23744] font-bold text-xs">Zomato</span>
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+          </a>
+          <a href="https://swiggy.com" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1 bg-[#FC8019]/20 hover:bg-[#FC8019]/30 border border-[#FC8019]/30 rounded-full transition-all">
+            <span className="text-sm">🛵</span>
+            <span className="text-[#FC8019] font-bold text-xs">Swiggy</span>
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+          </a>
+        </div>
+      </div>
+
       {/* Ordering Hours Banner */}
       {!isOpen && (
         <div className="shrink-0 bg-red-500/15 border-b border-red-500/30 px-4 py-3 relative z-10">
