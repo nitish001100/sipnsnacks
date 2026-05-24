@@ -396,14 +396,14 @@ export default function PublicMenuPage() {
       <div className="shrink-0 bg-gradient-to-r from-[#E23744] via-[#FC8019] to-[#E23744] px-4 py-2.5 relative z-20">
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <span className="text-white font-bold text-xs tracking-wide">🎉 NOW LIVE ON</span>
-          <a href="https://zomato.com" target="_blank" rel="noopener noreferrer"
+          <a href="https://www.zomato.com/sitapur/sip-n-snacks-sitapur-locality/order" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 border border-white/30 rounded-full transition-all">
             <span className="text-sm">🍽️</span>
             <span className="text-white font-extrabold text-xs">Zomato</span>
             <span className="w-2 h-2 bg-green-300 rounded-full animate-pulse shadow-sm shadow-green-300" />
           </a>
           <span className="text-white/70 text-xs">&</span>
-          <a href="https://swiggy.com" target="_blank" rel="noopener noreferrer"
+          <a href="https://www.swiggy.com/city/sitapur/sipnsnacks-pandey-chowraha-rest1377993" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 border border-white/30 rounded-full transition-all">
             <span className="text-sm">🛵</span>
             <span className="text-white font-extrabold text-xs">Swiggy</span>
