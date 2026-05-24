@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getSetting } from '@/lib/db';
-import { Pool } from 'pg';
+import { getSetting, pool } from '@/lib/db';
 import bcrypt from 'bcryptjs';
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
 
 // POST /api/reset - Reset all orders, order items, and sales data
 export async function POST(request: Request) {

@@ -1,10 +1,5 @@
-import { Pool } from 'pg';
+import { pool } from './db';
 import { sendPushToAll } from './firebase-admin';
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
 
 // Notify all registered kitchen devices about a new order
 export async function notifyKitchen(orderNumber: string, itemCount: number) {

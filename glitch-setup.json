@@ -8,7 +8,7 @@
     }
   },
   "env": {
-    "VERCEL_APP_URL": "https://sipnsnacks.onrender.com",
+    "VERCEL_APP_URL": "https://sipnsnacks.vercel.app",
     "WHATSAPP_GROUP_INVITE": "Kp6y7Redb7S2qqrS2dA7GV"
   }
 }

@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getMenuItems, createMenuItem } from '@/lib/db';
+import { getMenuItems, createMenuItem, pool } from '@/lib/db';
 import { getAuthFromHeaders } from '@/lib/auth';
-import { Pool } from 'pg';
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
 
 // GET /api/menu - Get all menu items (public)
 export async function GET() {

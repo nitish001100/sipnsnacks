@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import { pool } from '@/lib/db';
 import { getAuthFromHeaders } from '@/lib/auth';
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
 
 // POST /api/push/register - Register FCM token
 export async function POST(request: Request) {

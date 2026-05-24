@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import { pool } from '@/lib/db';
 import nodemailer from 'nodemailer';
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
 
 const ALERT_EMAIL = 'nitish.saxena001100@gmail.com';
 const PENDING_THRESHOLD_MINUTES = 20;
@@ -92,7 +87,7 @@ export async function GET() {
         </div>
 
         <div style="padding: 16px; text-align: center; background: #fef2f2; border-radius: 0 0 12px 12px; border: 1px solid #fecaca; border-top: 0;">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://sipnsnacks.onrender.com'}/kitchen" 
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://sipnsnacks.vercel.app'}/kitchen" 
              style="display: inline-block; background: #dc2626; color: white; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
             Open Kitchen Display →
           </a>

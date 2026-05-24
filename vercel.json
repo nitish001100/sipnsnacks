@@ -1,8 +1,6 @@
 {
-  "crons": [
-    {
-      "path": "/api/sync/google-drive",
-      "schedule": "0 18 * * *"
-    }
-  ]
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": ".next"
 }
