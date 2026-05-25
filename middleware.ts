@@ -7,7 +7,6 @@ const authPaths = ['/login'];
 
 function getRoleFromToken(token: string): string | null {
   try {
-    // Decode JWT payload (middle part) without verification (middleware can't use jsonwebtoken)
     const parts = token.split('.');
     if (parts.length !== 3) return null;
     const payload = JSON.parse(atob(parts[1]));
@@ -17,9 +16,48 @@ function getRoleFromToken(token: string): string | null {
   }
 }
 
+function isAdminSubdomain(request: NextRequest): boolean {
+  const hostname = request.headers.get('host') || '';
+  // Match admin.sipnsnacks.vercel.app, admin.sipnsnacks.com, admin.localhost, etc.
+  return hostname.startsWith('admin.');
+}
+
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('pos-auth-token')?.value;
   const { pathname } = request.nextUrl;
+  const isAdmin = isAdminSubdomain(request);
+
+  // ─── MAIN DOMAIN (sipnsnacks.vercel.app) ───
+  // Public visitors: redirect everything to /menu
+  if (!isAdmin) {
+    // Allow /menu page to load normally
+    if (pathname === '/menu') {
+      return NextResponse.next();
+    }
+
+    // Allow API routes (needed for menu data, orders, etc.)
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.next();
+    }
+
+    // Allow static assets & Next.js internals
+    if (
+      pathname.startsWith('/_next/') ||
+      pathname.startsWith('/favicon') ||
+      pathname.startsWith('/logo') ||
+      pathname.startsWith('/manifest') ||
+      pathname.startsWith('/firebase') ||
+      pathname.match(/\.(png|jpg|jpeg|svg|ico|js|css|json|webp|woff|woff2|ttf)$/)
+    ) {
+      return NextResponse.next();
+    }
+
+    // Everything else → redirect to /menu
+    return NextResponse.redirect(new URL('/menu', request.url));
+  }
+
+  // ─── ADMIN SUBDOMAIN (admin.sipnsnacks.vercel.app) ───
+  // Full admin panel with login protection
 
   // Redirect root to appropriate page
   if (pathname === '/') {
@@ -64,5 +102,13 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/menu/manage/:path*', '/checkout/:path*', '/kitchen/:path*', '/reports/:path*', '/orders/:path*', '/login'],
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico
+     */
+    '/((?!_next/static|_next/image).*)',
+  ],
 };
