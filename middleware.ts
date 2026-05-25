@@ -18,8 +18,8 @@ function getRoleFromToken(token: string): string | null {
 
 function isAdminSubdomain(request: NextRequest): boolean {
   const hostname = request.headers.get('host') || '';
-  // Match admin.sipnsnacks.vercel.app, admin.sipnsnacks.com, admin.localhost, etc.
-  return hostname.startsWith('admin.');
+  // Match admin-sipnsnacks.vercel.app, admin.sipnsnacks.com, admin.localhost, etc.
+  return hostname.startsWith('admin.') || hostname.startsWith('admin-sipnsnacks');
 }
 
 export function middleware(request: NextRequest) {
