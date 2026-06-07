@@ -93,6 +93,11 @@ export default function DashboardPage() {
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [storeHours, setStoreHours] = useState({ open_time: '10:30', close_time: '21:45', forced_closed: false });
+  const [showHoursModal, setShowHoursModal] = useState(false);
+  const [editOpen, setEditOpen] = useState('10:30');
+  const [editClose, setEditClose] = useState('21:45');
+  const [savingHours, setSavingHours] = useState(false);
   const today = format(new Date(), 'yyyy-MM-dd');
   const { hidden: moneyHidden, show: moneyShow, hide: moneyHide, mask, isChef } = useHideMoney();
 
@@ -125,6 +130,51 @@ export default function DashboardPage() {
     const interval = setInterval(fetchDashboard, 15000);
     return () => clearInterval(interval);
   }, [fetchDashboard]);
+
+  // Fetch store hours
+  useEffect(() => {
+    const fetchHours = async () => {
+      try {
+        const res = await fetch('/api/settings/store-hours');
+        if (res.ok) { const d = await res.json(); setStoreHours(d); setEditOpen(d.open_time); setEditClose(d.close_time); }
+      } catch {}
+    };
+    fetchHours();
+  }, []);
+
+  const fmt12 = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
+  };
+
+  const isStoreCurrentlyOpen = () => {
+    if (storeHours.forced_closed) return false;
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const cur = now.getHours() * 60 + now.getMinutes();
+    const [oh, om] = storeHours.open_time.split(':').map(Number);
+    const [ch, cm] = storeHours.close_time.split(':').map(Number);
+    return cur >= (oh * 60 + om) && cur <= (ch * 60 + cm);
+  };
+
+  const saveStoreHours = async (data: { open_time?: string; close_time?: string; forced_closed?: boolean }) => {
+    setSavingHours(true);
+    try {
+      const res = await fetch('/api/settings/store-hours', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setStoreHours(d);
+        setEditOpen(d.open_time);
+        setEditClose(d.close_time);
+        toast.success(d.message || 'Store hours updated!');
+        setShowHoursModal(false);
+      } else { const d = await res.json(); toast.error(d.error || 'Failed'); }
+    } catch { toast.error('Failed to update'); }
+    finally { setSavingHours(false); }
+  };
 
   // Listen for sidebar action events
   useEffect(() => {
@@ -339,6 +389,52 @@ export default function DashboardPage() {
                 </button>
               </div>
             )}
+
+            {/* 🕐 Store Hours Control */}
+            <div className={`rounded-xl border p-3 mb-3 flex items-center justify-between ${
+              storeHours.forced_closed ? 'bg-red-50 border-red-200' : isStoreCurrentlyOpen() ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  storeHours.forced_closed ? 'bg-red-500' : isStoreCurrentlyOpen() ? 'bg-green-500' : 'bg-yellow-500'
+                } text-white`}>
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-bold ${
+                      storeHours.forced_closed ? 'text-red-700' : isStoreCurrentlyOpen() ? 'text-green-700' : 'text-yellow-700'
+                    }`}>
+                      {storeHours.forced_closed ? '🔴 Store Closed (Manual)' : isStoreCurrentlyOpen() ? '🟢 Store Open' : '🟡 Store Closed'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Hours: <strong>{fmt12(storeHours.open_time)} – {fmt12(storeHours.close_time)}</strong> IST
+                    {storeHours.forced_closed && <span className="text-red-500 ml-1">(forced off)</span>}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Quick toggle: Force close / reopen */}
+                <button
+                  onClick={() => saveStoreHours({ forced_closed: !storeHours.forced_closed })}
+                  disabled={savingHours}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    storeHours.forced_closed
+                      ? 'bg-green-500 hover:bg-green-600 text-white'
+                      : 'bg-red-500 hover:bg-red-600 text-white'
+                  }`}
+                >
+                  {savingHours ? '...' : storeHours.forced_closed ? '▶ Reopen' : '⏸ Close Now'}
+                </button>
+                <button
+                  onClick={() => { setEditOpen(storeHours.open_time); setEditClose(storeHours.close_time); setShowHoursModal(true); }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition-all"
+                >
+                  ✏️ Edit
+                </button>
+              </div>
+            </div>
 
             {/* Quick Actions - compact row */}
             <div className="grid grid-cols-4 gap-2 mb-3">
@@ -728,6 +824,49 @@ export default function DashboardPage() {
                 </>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Store Hours Edit Modal */}
+      {showHoursModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowHoursModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3">
+                <Clock className="w-7 h-7 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">⏰ Edit Store Hours</h3>
+              <p className="text-sm text-gray-500 mt-1">Set when customers can place orders</p>
+            </div>
+            <div className="space-y-4 mb-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">🌅 Opening Time</label>
+                <input type="time" value={editOpen} onChange={(e) => setEditOpen(e.target.value)}
+                  className="input text-lg font-mono" />
+                <p className="text-[10px] text-gray-400 mt-0.5">Currently: {fmt12(storeHours.open_time)}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">🌙 Closing Time</label>
+                <input type="time" value={editClose} onChange={(e) => setEditClose(e.target.value)}
+                  className="input text-lg font-mono" />
+                <p className="text-[10px] text-gray-400 mt-0.5">Currently: {fmt12(storeHours.close_time)}</p>
+              </div>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 mb-4">
+              <p className="text-[11px] text-blue-700">💡 These hours are stored in your Google Sheets settings tab. You can also change them directly in the spreadsheet!</p>
+            </div>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setShowHoursModal(false)} className="btn-secondary flex-1">Cancel</button>
+              <button
+                onClick={() => saveStoreHours({ open_time: editOpen, close_time: editClose })}
+                disabled={savingHours}
+                className="btn-primary flex-1 flex items-center justify-center gap-2"
+              >
+                {savingHours ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+                {savingHours ? 'Saving...' : 'Save Hours'}
+              </button>
+            </div>
           </div>
         </div>
       )}

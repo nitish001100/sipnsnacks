@@ -35,16 +35,16 @@ interface CartItem {
 
 const WHATSAPP_NUMBER = '917054005885';
 
-// Ordering hours: 10:30 AM to 9:45 PM IST
-const OPEN_HOUR = 10; const OPEN_MIN = 30;
-const CLOSE_HOUR = 21; const CLOSE_MIN = 45;
+function parseTime(t: string): { h: number; m: number } {
+  const [h, m] = t.split(':').map(Number);
+  return { h: h || 0, m: m || 0 };
+}
 
-function isWithinOrderingHours(): boolean {
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const openMinutes = OPEN_HOUR * 60 + OPEN_MIN;   // 10:30 = 630
-  const closeMinutes = CLOSE_HOUR * 60 + CLOSE_MIN; // 21:45 = 1305
-  return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
+function formatTime12(t: string): string {
+  const { h, m } = parseTime(t);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
 export default function PublicMenuPage() {
@@ -65,18 +65,42 @@ export default function PublicMenuPage() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [placedOrderNumber, setPlacedOrderNumber] = useState('');
 
-  // Ordering hours check (10:30 AM - 9:45 PM IST)
+  // Ordering hours — fetched from Google Sheets settings
   const [isOpen, setIsOpen] = useState(true);
+  const [storeHours, setStoreHours] = useState({ open_time: '10:30', close_time: '21:45', forced_closed: false });
+
   useEffect(() => {
-    const check = () => {
-      const open = isWithinOrderingHours();
-      setIsOpen(open);
-      if (!open) setCart([]); // Clear cart when store closes
+    const fetchHours = async () => {
+      try {
+        const res = await fetch('/api/settings/store-hours');
+        if (res.ok) {
+          const data = await res.json();
+          setStoreHours(data);
+        }
+      } catch { /* use defaults */ }
     };
-    check();
-    const timer = setInterval(check, 30000); // check every 30s
-    return () => clearInterval(timer);
+    fetchHours();
+    const fetchInterval = setInterval(fetchHours, 60000); // refresh every 60s
+    return () => clearInterval(fetchInterval);
   }, []);
+
+  useEffect(() => {
+    const checkOpen = () => {
+      if (storeHours.forced_closed) { setIsOpen(false); return; }
+      const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const currentMin = now.getHours() * 60 + now.getMinutes();
+      const { h: oh, m: om } = parseTime(storeHours.open_time);
+      const { h: ch, m: cm } = parseTime(storeHours.close_time);
+      const openMin = oh * 60 + om;
+      const closeMin = ch * 60 + cm;
+      const open = currentMin >= openMin && currentMin <= closeMin;
+      setIsOpen(open);
+      if (!open) setCart([]);
+    };
+    checkOpen();
+    const timer = setInterval(checkOpen, 30000);
+    return () => clearInterval(timer);
+  }, [storeHours]);
 
   const getVariantLabels = (category: string): [string, string] => {
     const match = category.match(/\(([^)]+)\)/);
@@ -197,18 +221,16 @@ export default function PublicMenuPage() {
 
   const handleOrderClick = () => {
     if (cart.length === 0) return;
-    if (!isWithinOrderingHours()) {
-      setIsOpen(false);
-      alert('Sorry! We accept orders only between 10:30 AM and 9:45 PM IST. Please try again during our ordering hours.');
+    if (!isOpen) {
+      alert(`Sorry! We accept orders only between ${formatTime12(storeHours.open_time)} and ${formatTime12(storeHours.close_time)} IST. Please try again during our ordering hours.`);
       return;
     }
     setShowPhonePrompt(true);
   };
 
   const placeOrder = async () => {
-    if (!isWithinOrderingHours()) {
-      setIsOpen(false);
-      alert('Sorry! Ordering is closed. We accept orders between 10:30 AM and 9:45 PM IST.');
+    if (!isOpen) {
+      alert(`Sorry! Ordering is closed. We accept orders between ${formatTime12(storeHours.open_time)} and ${formatTime12(storeHours.close_time)} IST.`);
       setShowPhonePrompt(false);
       return;
     }
@@ -452,7 +474,7 @@ export default function PublicMenuPage() {
             <span className="text-lg">🕐</span>
             <div>
               <p className="text-red-400 font-bold text-sm">We&apos;re currently closed for orders</p>
-              <p className="text-red-400/70 text-xs">Ordering hours: <strong>10:30 AM – 9:45 PM</strong> IST</p>
+              <p className="text-red-400/70 text-xs">Ordering hours: <strong>{formatTime12(storeHours.open_time)} – {formatTime12(storeHours.close_time)}</strong> IST</p>
             </div>
           </div>
         </div>
