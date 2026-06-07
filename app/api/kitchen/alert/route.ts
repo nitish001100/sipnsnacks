@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { pool } from '@/lib/db';
+import { getOverdueOrders, getSetting, setSetting } from '@/lib/db';
 import nodemailer from 'nodemailer';
 
 const ALERT_EMAIL = 'nitish.saxena001100@gmail.com';
@@ -8,33 +8,17 @@ const PENDING_THRESHOLD_MINUTES = 20;
 // GET /api/kitchen/alert - Cron job: check for orders pending > 20 mins and send email
 export async function GET() {
   try {
-    // Find orders that are 'pending' and older than 20 minutes
-    const { rows: overdueOrders } = await pool.query(
-      `SELECT o.id, o.order_number, o.total_amount, o.created_at,
-              EXTRACT(EPOCH FROM (NOW() - o.created_at))/60 AS minutes_pending,
-              (SELECT string_agg(oi.item_name || ' x' || oi.quantity, ', ')
-               FROM order_items oi WHERE oi.order_id = o.id) AS items_summary
-       FROM orders o
-       WHERE o.status = 'pending'
-         AND o.created_at < NOW() - INTERVAL '${PENDING_THRESHOLD_MINUTES} minutes'
-         AND DATE(o.created_at) = CURRENT_DATE
-       ORDER BY o.created_at ASC`
-    );
+    const overdueOrders = await getOverdueOrders(PENDING_THRESHOLD_MINUTES);
 
     if (overdueOrders.length === 0) {
       return NextResponse.json({ message: 'No overdue orders', count: 0 });
     }
 
-    // Check if we already sent an alert for these orders recently (within last 15 mins)
-    // Use a simple approach: check a settings key
-    const { rows: lastAlert } = await pool.query(
-      "SELECT value FROM settings WHERE key = 'last_overdue_alert'"
-    );
-
-    const lastAlertTime = lastAlert[0]?.value ? new Date(lastAlert[0].value) : null;
+    // Check if we already sent an alert recently (within last 15 mins)
+    const lastAlertStr = await getSetting('last_overdue_alert');
+    const lastAlertTime = lastAlertStr ? new Date(lastAlertStr) : null;
     const now = new Date();
 
-    // Only send email if no alert was sent in the last 15 minutes
     if (lastAlertTime && (now.getTime() - lastAlertTime.getTime()) < 15 * 60 * 1000) {
       return NextResponse.json({
         message: 'Alert already sent recently, skipping',
@@ -45,13 +29,12 @@ export async function GET() {
 
     // Build email
     const orderRows = overdueOrders.map((o) => {
-      const mins = Math.round(parseFloat(o.minutes_pending));
       return `
         <tr style="border-bottom: 1px solid #fee2e2;">
           <td style="padding: 10px 12px; font-weight: bold; color: #1B2E3C;">${o.order_number}</td>
           <td style="padding: 10px 12px; font-size: 13px; color: #475569;">${o.items_summary || '-'}</td>
-          <td style="padding: 10px 12px; text-align: right;">₹${parseFloat(o.total_amount).toLocaleString('en-IN')}</td>
-          <td style="padding: 10px 12px; text-align: center; color: #dc2626; font-weight: bold;">${mins} min</td>
+          <td style="padding: 10px 12px; text-align: right;">₹${o.total_amount.toLocaleString('en-IN')}</td>
+          <td style="padding: 10px 12px; text-align: center; color: #dc2626; font-weight: bold;">${o.minutes_pending} min</td>
         </tr>
       `;
     }).join('');
@@ -115,11 +98,7 @@ export async function GET() {
     });
 
     // Update last alert timestamp
-    await pool.query(
-      `INSERT INTO settings (key, value, updated_at) VALUES ('last_overdue_alert', $1, NOW())
-       ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
-      [now.toISOString()]
-    );
+    await setSetting('last_overdue_alert', now.toISOString());
 
     return NextResponse.json({
       message: `Alert sent for ${overdueOrders.length} overdue order(s)`,

@@ -10,6 +10,8 @@
     "db:migrate": "node scripts/migrate.mjs",
     "db:migrate:whatsapp": "node scripts/migrate-whatsapp.mjs",
     "db:seed": "node scripts/seed.mjs",
+    "db:get-token": "node scripts/get-google-token.mjs",
+    "db:setup-sheets": "node scripts/setup-sheets.mjs",
     "whatsapp:bot": "node scripts/whatsapp-bot.mjs"
   },
   "dependencies": {

@@ -1,17 +1,16 @@
-import { pool } from './db';
+import { getPushTokens, deletePushToken } from './db';
 import { sendPushToAll } from './firebase-admin';
 
 // Notify all registered kitchen devices about a new order
 export async function notifyKitchen(orderNumber: string, itemCount: number) {
   try {
     // Get all push tokens
-    const { rows } = await pool.query('SELECT token FROM push_tokens');
-    if (rows.length === 0) {
+    const tokens = await getPushTokens();
+    if (tokens.length === 0) {
       console.log('No push tokens registered');
       return;
     }
 
-    const tokens = rows.map((r: { token: string }) => r.token);
     const title = `🔔 New Order #${orderNumber}`;
     const body = `${itemCount} item${itemCount > 1 ? 's' : ''} received — tap to view in kitchen`;
 
@@ -20,7 +19,7 @@ export async function notifyKitchen(orderNumber: string, itemCount: number) {
     // Clean up invalid tokens
     if (invalidTokens.length > 0) {
       for (const token of invalidTokens) {
-        await pool.query('DELETE FROM push_tokens WHERE token = $1', [token]);
+        await deletePushToken(token);
       }
       console.log(`Removed ${invalidTokens.length} invalid push tokens`);
     }

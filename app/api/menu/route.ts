@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMenuItems, createMenuItem, pool } from '@/lib/db';
+import { getMenuItems, createMenuItem, deleteAllMenuItems } from '@/lib/db';
 import { getAuthFromHeaders } from '@/lib/auth';
 
 // GET /api/menu - Get all menu items (public)
@@ -78,10 +78,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const result = await pool.query('DELETE FROM menu_items');
+    const deleted = await deleteAllMenuItems();
     return NextResponse.json({
       message: 'All menu items deleted',
-      deleted: result.rowCount ?? 0,
+      deleted,
     });
   } catch (error) {
     console.error('Error clearing menu:', error);

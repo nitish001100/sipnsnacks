@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { pool } from '@/lib/db';
+import { registerPushToken, deletePushToken } from '@/lib/db';
 import { getAuthFromHeaders } from '@/lib/auth';
 
 // POST /api/push/register - Register FCM token
@@ -15,24 +15,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Token required' }, { status: 400 });
     }
 
-    // Create table if not exists
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS push_tokens (
-        id SERIAL PRIMARY KEY,
-        token TEXT UNIQUE NOT NULL,
-        user_role TEXT DEFAULT 'kitchen',
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Upsert token
-    await pool.query(
-      `INSERT INTO push_tokens (token, user_role, updated_at)
-       VALUES ($1, $2, NOW())
-       ON CONFLICT (token) DO UPDATE SET updated_at = NOW(), user_role = $2`,
-      [token, auth.role || 'kitchen']
-    );
+    await registerPushToken(token, auth.role || 'kitchen');
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -49,7 +32,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Token required' }, { status: 400 });
     }
 
-    await pool.query('DELETE FROM push_tokens WHERE token = $1', [token]);
+    await deletePushToken(token);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Push unregister error:', error);

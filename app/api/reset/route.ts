@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSetting, pool } from '@/lib/db';
+import { getSetting, resetAllOrders } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 // POST /api/reset - Reset all orders, order items, and sales data
@@ -22,16 +22,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
     }
 
-    // Delete all order items first (foreign key constraint)
-    const itemsResult = await pool.query('DELETE FROM order_items');
-    const ordersResult = await pool.query('DELETE FROM orders');
+    const deleted = await resetAllOrders();
 
     return NextResponse.json({
       message: 'All data has been reset successfully!',
-      deleted: {
-        orders: ordersResult.rowCount ?? 0,
-        order_items: itemsResult.rowCount ?? 0,
-      },
+      deleted,
     });
   } catch (error) {
     console.error('Reset error:', error);
