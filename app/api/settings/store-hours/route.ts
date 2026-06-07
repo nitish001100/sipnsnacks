@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSetting, setSetting } from '@/lib/db';
-import { verifyAuth } from '@/lib/auth';
+import { getAuthFromHeaders } from '@/lib/auth';
 
 // Default hours: 10:30 AM - 9:45 PM IST
 const DEFAULTS = { open: '10:30', close: '21:45', forced_closed: false };
@@ -24,7 +24,7 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await verifyAuth(request);
+  const auth = getAuthFromHeaders(request);
   if (!auth) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
