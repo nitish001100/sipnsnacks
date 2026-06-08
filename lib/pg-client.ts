@@ -5,7 +5,7 @@
  * Uses the `pg` package with connection pooling.
  */
 
-import { Pool, QueryResult } from 'pg';
+import { Pool, QueryResult, QueryResultRow } from 'pg';
 
 // Connection pool (reused across requests in serverless)
 let pool: Pool | null = null;
@@ -29,10 +29,10 @@ function getPool(): Pool {
   return pool;
 }
 
-export async function query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
+export async function query(text: string, params?: any[]): Promise<QueryResult> {
   const client = getPool();
   try {
-    return await client.query<T>(text, params);
+    return await client.query(text, params);
   } catch (error: any) {
     console.error('DB Query Error:', error.message, '\nQuery:', text.substring(0, 200));
     throw error;
@@ -40,13 +40,13 @@ export async function query<T = any>(text: string, params?: any[]): Promise<Quer
 }
 
 export async function queryOne<T = any>(text: string, params?: any[]): Promise<T | null> {
-  const result = await query<T>(text, params);
-  return result.rows[0] || null;
+  const result = await query(text, params);
+  return (result.rows[0] as T) || null;
 }
 
 export async function queryAll<T = any>(text: string, params?: any[]): Promise<T[]> {
-  const result = await query<T>(text, params);
-  return result.rows;
+  const result = await query(text, params);
+  return result.rows as T[];
 }
 
 /**
