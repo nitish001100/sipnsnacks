@@ -114,20 +114,33 @@ export async function createOrder(
   const yy = String(d.getFullYear()).slice(-2);
   const prefix = `SNS-${dd}${mm}${yy}-`;
 
-  // Get next sequence
-  const seqRow = await queryOne<{ max_seq: number }>(
-    `SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM $1) AS INTEGER)), 0) as max_seq
-     FROM orders WHERE order_number LIKE $2`,
-    [prefix.length + 1, `${prefix}%`]
-  );
-  const seq = (seqRow?.max_seq || 0) + 1;
-  const orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
+  // Get next sequence with retry for race conditions
+  let order: Order | null = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const seqRow = await queryOne<{ max_seq: number }>(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM $1) AS INTEGER)), 0) as max_seq
+       FROM orders WHERE order_number LIKE $2`,
+      [prefix.length + 1, `${prefix}%`]
+    );
+    const seq = (seqRow?.max_seq || 0) + 1 + attempt;
+    const orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
 
-  const order = await queryOne<Order>(
-    `INSERT INTO orders (order_number, total_amount, status, source, customer_whatsapp, customer_name, customer_address)
-     VALUES ($1,$2,'pending',$3,$4,$5,$6) RETURNING *`,
-    [orderNumber, totalAmount, source, customerWhatsapp || null, customerName || null, customerAddress || null]
-  );
+    try {
+      order = await queryOne<Order>(
+        `INSERT INTO orders (order_number, total_amount, status, source, customer_whatsapp, customer_name, customer_address)
+         VALUES ($1,$2,'pending',$3,$4,$5,$6) RETURNING *`,
+        [orderNumber, totalAmount, source, customerWhatsapp || null, customerName || null, customerAddress || null]
+      );
+      if (order) break;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('duplicate') && attempt < 4) {
+        console.log(`Order number ${orderNumber} conflict, retrying...`);
+        continue;
+      }
+      throw e;
+    }
+  }
   if (!order) return null;
 
   const orderItems: OrderItem[] = [];
