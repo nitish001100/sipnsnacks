@@ -87,10 +87,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ order }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating order:', error);
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error creating order:', errMsg, error);
     return NextResponse.json(
-      { error: 'Failed to create order' },
+      { error: 'Failed to create order', detail: errMsg },
       { status: 500 }
     );
   }
