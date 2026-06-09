@@ -854,7 +854,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 mb-4">
-              <p className="text-[11px] text-blue-700">💡 These hours are stored in your Google Sheets settings tab. You can also change them directly in the spreadsheet!</p>
+              <p className="text-[11px] text-blue-700">💡 Store hours are saved in the database. Online ordering will be disabled outside these hours.</p>
             </div>
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowHoursModal(false)} className="btn-secondary flex-1">Cancel</button>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSetting, setSetting } from '@/lib/db';
-import { getAuthFromHeaders } from '@/lib/auth';
+import { getAuthFromCookies } from '@/lib/auth';
 
 // Default hours: 10:30 AM - 9:45 PM IST
 const DEFAULTS = { open: '10:30', close: '21:45', forced_closed: false };
@@ -24,9 +24,22 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = getAuthFromHeaders(request);
+  // Try cookies first (Next.js built-in), then headers
+  let auth = getAuthFromCookies();
   if (!auth) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    // Fallback: parse from request headers
+    const cookieHeader = request.headers.get('cookie');
+    if (cookieHeader) {
+      const tokenMatch = cookieHeader.match(/pos-auth-token=([^;]+)/);
+      if (tokenMatch) {
+        const { verifyToken } = await import('@/lib/auth');
+        auth = verifyToken(tokenMatch[1]);
+      }
+    }
+  }
+  
+  if (!auth) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -34,7 +47,6 @@ export async function PUT(request: NextRequest) {
     const { open_time, close_time, forced_closed } = body;
 
     if (open_time !== undefined) {
-      // Validate HH:MM format
       if (!/^\d{1,2}:\d{2}$/.test(open_time)) {
         return NextResponse.json({ error: 'Invalid open_time format. Use HH:MM' }, { status: 400 });
       }
@@ -66,6 +78,7 @@ export async function PUT(request: NextRequest) {
       message: 'Store hours updated!',
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Store hours update error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to update store hours' }, { status: 500 });
   }
 }
