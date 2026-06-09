@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { useHideMoney } from '@/hooks/useHideMoney';
+import HideMoneyToggle from '@/components/HideMoneyToggle';
 
 interface OrderItem {
   item_name: string;
@@ -51,6 +53,7 @@ export default function OrdersPage() {
   const [filterDate, setFilterDate] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const limit = 20;
+  const { mask } = useHideMoney();
 
   useEffect(() => {
     fetchOrders();
@@ -199,7 +202,7 @@ export default function OrdersPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gray-900 text-lg">₹{order.total_amount?.toLocaleString('en-IN')}</p>
+                        <p className="font-bold text-gray-900 text-lg">{mask(order.total_amount)}</p>
                         <p className="text-xs text-gray-400">{order.items?.length || 0} items</p>
                       </div>
                     </div>
@@ -305,8 +308,8 @@ export default function OrdersPage() {
                           <tr key={idx} className="border-t">
                             <td className="px-3 py-2 font-medium text-gray-900">{item.item_name}</td>
                             <td className="px-3 py-2 text-center text-gray-600">{item.quantity}</td>
-                            <td className="px-3 py-2 text-right text-gray-600">₹{item.price}</td>
-                            <td className="px-3 py-2 text-right font-medium text-gray-900">₹{item.subtotal}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{mask(item.price)}</td>
+                            <td className="px-3 py-2 text-right font-medium text-gray-900">{mask(item.subtotal)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -317,7 +320,7 @@ export default function OrdersPage() {
                 {/* Total */}
                 <div className="flex justify-between items-center p-4 bg-amber-50 rounded-xl border border-amber-200">
                   <span className="font-medium text-amber-800">Total Amount</span>
-                  <span className="text-2xl font-bold text-amber-900">₹{selectedOrder.total_amount?.toLocaleString('en-IN')}</span>
+                  <span className="text-2xl font-bold text-amber-900">{mask(selectedOrder.total_amount)}</span>
                 </div>
               </div>
             </div>

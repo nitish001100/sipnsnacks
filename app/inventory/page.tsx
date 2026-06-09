@@ -8,6 +8,7 @@ import {
   ArrowUpCircle, ArrowDownCircle, Search, RefreshCw, Download, Edit2,
   DollarSign, TrendingDown, BarChart3,
 } from 'lucide-react';
+import { useHideMoney } from '@/hooks/useHideMoney';
 
 interface Ingredient {
   id: number; name: string; unit: string; current_quantity: number;
@@ -57,6 +58,7 @@ export default function InventoryPage() {
   const [recipeIngredients, setRecipeIngredients] = useState<Array<{ ingredient_id: number; quantity_required: number }>>([]);
 
   // Daily log date
+  const { mask } = useHideMoney();
   const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
 
   const fetchIngredients = useCallback(async () => {
@@ -224,7 +226,7 @@ export default function InventoryPage() {
           <div className="bg-white rounded-xl border p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg"><DollarSign className="w-5 h-5 text-green-600" /></div>
-              <div><p className="text-xs text-gray-500">Stock Value</p><p className="text-xl font-bold text-green-600">₹{Math.round(totalValue).toLocaleString('en-IN')}</p></div>
+              <div><p className="text-xs text-gray-500">Stock Value</p><p className="text-xl font-bold text-green-600">{mask(Math.round(totalValue))}</p></div>
             </div>
           </div>
           <div className="bg-white rounded-xl border p-4 shadow-sm">
@@ -291,7 +293,7 @@ export default function InventoryPage() {
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h3 className="font-semibold text-gray-800">{ing.name}</h3>
-                            <p className="text-xs text-gray-500">Unit: {ing.unit} · Cost: ₹{ing.unit_cost}/{ing.unit}</p>
+                            <p className="text-xs text-gray-500">Unit: {ing.unit} · Cost: {mask(ing.unit_cost)}/{ing.unit}</p>
                           </div>
                           <div className="flex gap-1">
                             <button onClick={() => { setEditModal(ing); setEditData({ name: ing.name, unit: ing.unit, current_quantity: ing.current_quantity, minimum_quantity: ing.minimum_quantity, unit_cost: ing.unit_cost }); }} className="text-gray-400 hover:text-blue-500"><Edit2 className="w-4 h-4" /></button>
@@ -305,7 +307,7 @@ export default function InventoryPage() {
                               Min: {ing.minimum_quantity} {ing.unit}
                               {isLow && <span className="text-red-500 font-semibold ml-1">⚠ LOW</span>}
                             </p>
-                            <p className="text-xs text-gray-400 mt-0.5">Value: ₹{Math.round(ing.current_quantity * ing.unit_cost)}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">Value: {mask(Math.round(ing.current_quantity * ing.unit_cost))}</p>
                           </div>
                           <div className="flex gap-1">
                             <button onClick={() => { setStockModal({ ingredient: ing, type: 'add' }); setStockQty(0); }}
@@ -342,7 +344,7 @@ export default function InventoryPage() {
                     return (
                       <div key={item.id} className="bg-white rounded-xl border p-4 shadow-sm">
                         <div className="flex justify-between items-start mb-2">
-                          <div><h3 className="font-semibold text-gray-800">{item.name}</h3><p className="text-xs text-gray-500">{item.category} · ₹{item.price}</p></div>
+                          <div><h3 className="font-semibold text-gray-800">{item.name}</h3><p className="text-xs text-gray-500">{item.category} · {mask(item.price)}</p></div>
                           <button onClick={() => openRecipeModal(item)} className="text-xs px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 font-medium">
                             {itemRecipes.length > 0 ? 'Edit' : 'Set Recipe'}
                           </button>

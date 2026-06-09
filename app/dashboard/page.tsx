@@ -810,7 +810,7 @@ export default function DashboardPage() {
                           `}>
                           <span className={`text-xs font-bold ${isToday ? 'text-orange-700' : hasData ? 'text-gray-800' : 'text-gray-300'}`}>{d}</span>
                           {hasData ? (
-                            <span className="text-[9px] font-bold text-green-700 leading-tight">₹{data.revenue >= 1000 ? `${(data.revenue / 1000).toFixed(1)}k` : data.revenue}</span>
+                            <span className="text-[9px] font-bold text-green-700 leading-tight">{mask(data.revenue)}</span>
                           ) : (
                             <span className="text-[9px] text-gray-300">-</span>
                           )}

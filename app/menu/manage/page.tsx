@@ -16,6 +16,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useHideMoney } from '@/hooks/useHideMoney';
 
 interface MenuItem {
   id: number;
@@ -62,6 +63,7 @@ export default function MenuManagePage() {
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvResult, setCsvResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const [clearingMenu, setClearingMenu] = useState(false);
+  const { mask } = useHideMoney();
 
   useEffect(() => {
     fetchItems();
@@ -308,10 +310,10 @@ export default function MenuManagePage() {
                 <div className="flex items-center justify-between">
                   {item.has_variants ? (
                     <div className="flex flex-col">
-                      <span className="text-xs text-gray-500">H: ₹{item.half_price} | F: ₹{item.full_price}</span>
+                      <span className="text-xs text-gray-500">H: {mask(item.half_price || 0)} | F: {mask(item.full_price || 0)}</span>
                     </div>
                   ) : (
-                    <span className="font-bold text-gray-900">₹{item.price}</span>
+                    <span className="font-bold text-gray-900">{mask(item.price)}</span>
                   )}
                   <div className="flex gap-1.5">
                     <button
