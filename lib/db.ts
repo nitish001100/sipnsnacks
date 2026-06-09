@@ -141,10 +141,13 @@ export async function createOrder(
     if (oi) orderItems.push(oi);
   }
 
-  // Auto-deduct ingredients (non-blocking)
-  deductIngredientsForOrder(orderItems, order.id).catch(e =>
-    console.error('Ingredient deduction failed:', e)
-  );
+  // Auto-deduct ingredients (BLOCKING - must complete before response on serverless)
+  try {
+    await deductIngredientsForOrder(orderItems, order.id);
+    console.log(`✅ Ingredients deducted for order ${orderNumber}`);
+  } catch (e) {
+    console.error('❌ Ingredient deduction failed for order', orderNumber, e);
+  }
 
   return { ...order, items: orderItems };
 }
