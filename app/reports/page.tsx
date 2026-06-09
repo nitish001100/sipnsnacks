@@ -102,8 +102,12 @@ export default function ReportsPage() {
 
   // Analytics state
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [analyticsDays, setAnalyticsDays] = useState(30);
+  const [analyticsDays, setAnalyticsDays] = useState<number | null>(null); // null = custom range
+  const [analyticsFrom, setAnalyticsFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [analyticsTo, setAnalyticsTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [showCustomRange, setShowCustomRange] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<string>('today');
 
   useEffect(() => {
     if (tab === 'daily') fetchData();
@@ -111,7 +115,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     if (tab === 'analytics') fetchAnalytics();
-  }, [analyticsDays, tab]);
+  }, [analyticsDays, analyticsFrom, analyticsTo, selectedPreset, tab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -134,7 +138,19 @@ export default function ReportsPage() {
   const fetchAnalytics = async () => {
     setAnalyticsLoading(true);
     try {
-      const res = await fetch(`/api/reports/analytics?days=${analyticsDays}`);
+      let url: string;
+      if (selectedPreset === 'custom') {
+        url = `/api/reports/analytics?from=${analyticsFrom}&to=${analyticsTo}`;
+      } else if (selectedPreset === 'today') {
+        const today = format(new Date(), 'yyyy-MM-dd');
+        url = `/api/reports/analytics?from=${today}&to=${today}`;
+      } else if (selectedPreset === 'yesterday') {
+        const y = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+        url = `/api/reports/analytics?from=${y}&to=${y}`;
+      } else {
+        url = `/api/reports/analytics?days=${analyticsDays}`;
+      }
+      const res = await fetch(url);
       const data = await res.json();
       if (res.ok) setAnalytics(data);
       else toast.error(data.error || 'Failed to fetch analytics');
@@ -142,6 +158,21 @@ export default function ReportsPage() {
       toast.error('Failed to fetch analytics');
     } finally {
       setAnalyticsLoading(false);
+    }
+  };
+
+  const selectPreset = (preset: string, days?: number) => {
+    setSelectedPreset(preset);
+    setShowCustomRange(preset === 'custom');
+    if (days) setAnalyticsDays(days);
+    else setAnalyticsDays(null);
+  };
+
+  const applyCustomRange = () => {
+    if (analyticsFrom && analyticsTo) {
+      setSelectedPreset('custom');
+      // Trigger refetch
+      fetchAnalytics();
     }
   };
 
@@ -233,20 +264,83 @@ export default function ReportsPage() {
         {tab === 'analytics' && (
           <>
             {/* Period Selector */}
-            <div className="flex gap-2 mb-6">
-              {[7, 14, 30, 60, 90].map(d => (
+            <div className="card mb-6 p-4">
+              <div className="flex flex-wrap gap-2 items-center">
+                {/* Today */}
                 <button
-                  key={d}
-                  onClick={() => setAnalyticsDays(d)}
+                  onClick={() => selectPreset('today')}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    analyticsDays === d
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    selectedPreset === 'today' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  {d}d
+                  Today
                 </button>
-              ))}
+                {/* Yesterday */}
+                <button
+                  onClick={() => {
+                    const y = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+                    setAnalyticsFrom(y);
+                    setAnalyticsTo(y);
+                    selectPreset('yesterday');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    selectedPreset === 'yesterday' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Yesterday
+                </button>
+                {/* Preset days */}
+                {[7, 14, 30, 60, 90].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => selectPreset(`${d}d`, d)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      selectedPreset === `${d}d` ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {d}d
+                  </button>
+                ))}
+                {/* Custom */}
+                <button
+                  onClick={() => { setShowCustomRange(!showCustomRange); selectPreset('custom'); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+                    selectedPreset === 'custom' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <Calendar className="w-3.5 h-3.5" /> Custom
+                </button>
+              </div>
+              {/* Custom Date Range */}
+              {showCustomRange && (
+                <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">From</label>
+                    <input
+                      type="date" value={analyticsFrom}
+                      onChange={(e) => setAnalyticsFrom(e.target.value)}
+                      max={analyticsTo}
+                      className="input w-auto text-sm py-1.5"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">To</label>
+                    <input
+                      type="date" value={analyticsTo}
+                      onChange={(e) => setAnalyticsTo(e.target.value)}
+                      min={analyticsFrom}
+                      max={format(new Date(), 'yyyy-MM-dd')}
+                      className="input w-auto text-sm py-1.5"
+                    />
+                  </div>
+                  <button
+                    onClick={applyCustomRange}
+                    className="btn-primary text-sm py-1.5 px-4"
+                  >
+                    Apply
+                  </button>
+                </div>
+              )}
             </div>
 
             {analyticsLoading ? (
@@ -320,7 +414,7 @@ export default function ReportsPage() {
                   <KpiCard
                     icon={<Calendar className="w-5 h-5" />}
                     label="Active Days"
-                    value={`${analytics.kpis.active_days} / ${analyticsDays}`}
+                    value={`${analytics.kpis.active_days} / ${analytics.period_days}`}
                     color="blue"
                   />
                 </div>
@@ -624,7 +718,7 @@ export default function ReportsPage() {
                           </tbody>
                         </table>
                         <p className="text-xs text-gray-400 mt-2 px-3">
-                          💡 Items with 0 sales in {analyticsDays} days should be reconsidered — promote or replace them.
+                          💡 Items with 0 sales in this period should be reconsidered — promote or replace them.
                         </p>
                       </div>
                     )}
@@ -687,7 +781,7 @@ export default function ReportsPage() {
                   <div className="space-y-2 text-sm text-gray-700">
                     {analytics.kpis.total_orders > 0 && (
                       <>
-                        <p>📊 You averaged <strong>{analytics.kpis.orders_per_day.toFixed(1)} orders/day</strong> over the last {analyticsDays} days.</p>
+                        <p>📊 You averaged <strong>{analytics.kpis.orders_per_day.toFixed(1)} orders/day</strong> across {analytics.kpis.active_days} active days.</p>
                         {earningsUnlocked && (
                           <p>💰 Average order value is <strong>{mask(analytics.kpis.avg_order_value)}</strong>. Try upselling combos to increase this.</p>
                         )}
