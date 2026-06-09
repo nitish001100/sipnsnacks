@@ -116,6 +116,7 @@ export async function createOrder(
 
   // Get next sequence with retry for race conditions
   let order: Order | null = null;
+  let orderNumber = '';
   for (let attempt = 0; attempt < 5; attempt++) {
     const seqRow = await queryOne<{ max_seq: number }>(
       `SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM $1) AS INTEGER)), 0) as max_seq
@@ -123,7 +124,7 @@ export async function createOrder(
       [prefix.length + 1, `${prefix}%`]
     );
     const seq = (seqRow?.max_seq || 0) + 1 + attempt;
-    const orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
+    orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
 
     try {
       order = await queryOne<Order>(
