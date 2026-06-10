@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getSetting, getDailySummary, getAllTimeRevenue } from '@/lib/db';
-import { getAuthFromCookies } from '@/lib/auth';
+import { getAuthFromHeaders } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { format } from 'date-fns';
 
 // POST - Verify settlement password and return earnings data
 export async function POST(request: Request) {
-  const auth = getAuthFromCookies();
+  const auth = getAuthFromHeaders(request);
   if (!auth) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

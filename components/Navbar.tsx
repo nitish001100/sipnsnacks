@@ -94,7 +94,8 @@ export default function Navbar() {
         setPwInput('');
         toast.success('₹ amounts visible');
       } else {
-        toast.error('Wrong password');
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Wrong password');
       }
     } catch {
       toast.error('Verification failed');
