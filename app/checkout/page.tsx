@@ -14,6 +14,7 @@ import {
   Printer,
   Phone,
   User,
+  AlertTriangle,
 } from 'lucide-react';
 import BillTemplate from '@/components/BillTemplate';
 import toast from 'react-hot-toast';
@@ -59,6 +60,7 @@ export default function CheckoutPage() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [completedOrder, setCompletedOrder] = useState<OrderResult | null>(null);
+  const [stockWarnings, setStockWarnings] = useState<Array<{ ingredient_name: string; needed: number; available: number; unit: string }>>([]);
   const [variantPicker, setVariantPicker] = useState<MenuItem | null>(null);
   const [customerName, setCustomerName] = useState('');
   const [customerWhatsapp, setCustomerWhatsapp] = useState('');
@@ -196,6 +198,23 @@ export default function CheckoutPage() {
         setCart([]);
         setCustomerName('');
         setCustomerWhatsapp('');
+
+        // Show stock warnings if any
+        if (data.stock_warnings && data.stock_warnings.length > 0) {
+          setStockWarnings(data.stock_warnings);
+          const shortList = data.stock_warnings
+            .map((w: { ingredient_name: string; available: number; needed: number; unit: string }) =>
+              `${w.ingredient_name}: need ${w.needed} ${w.unit}, only ${w.available} left`
+            )
+            .join('\n');
+          toast(
+            `⚠️ Low Stock Warning!\n${data.stock_warnings.length} ingredient(s) went below required:\n${shortList}`,
+            { icon: '⚠️', duration: 8000, style: { background: '#FEF3C7', border: '1px solid #F59E0B', color: '#92400E', maxWidth: '400px', whiteSpace: 'pre-line' } }
+          );
+        } else {
+          setStockWarnings([]);
+        }
+
         toast.success('Order placed successfully!');
       } else {
         const data = await res.json();
@@ -221,6 +240,33 @@ export default function CheckoutPage() {
           <div className="max-w-lg mx-auto">
             {/* Professional Bill Template */}
             <BillTemplate order={completedOrder} />
+
+            {/* Stock Shortage Warning Banner */}
+            {stockWarnings.length > 0 && (
+              <div className="no-print bg-amber-50 border-2 border-amber-300 rounded-xl p-4 mt-4" style={{ maxWidth: 360, margin: '16px auto 0' }}>
+                <div className="flex items-center gap-2 text-amber-700 font-bold mb-2">
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
+                  ⚠️ Stock Shortage Warning
+                </div>
+                <p className="text-xs text-amber-600 mb-2">
+                  The following ingredients went negative or below required. Please restock!
+                </p>
+                <div className="space-y-1">
+                  {stockWarnings.map((w, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-xs bg-amber-100 rounded px-2 py-1.5">
+                      <span className="font-medium text-amber-800">{w.ingredient_name}</span>
+                      <span className="text-amber-700">
+                        Need <strong>{w.needed}</strong> {w.unit} · Only <strong className="text-red-600">{w.available}</strong> left
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <a href="/inventory/restock"
+                  className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-amber-600 text-white rounded-lg text-xs font-semibold hover:bg-amber-700 transition-colors">
+                  📦 Go to Stock Add Up
+                </a>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-3 mt-4 no-print" style={{ maxWidth: 360, margin: '16px auto 0' }}>

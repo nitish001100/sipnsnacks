@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createOrder, getOrders } from '@/lib/db';
+import { createOrder, getOrders, checkIngredientAvailability } from '@/lib/db';
 import { getAuthFromHeaders } from '@/lib/auth';
 import { notifyKitchen } from '@/lib/push-notify';
 import { sendOrderToWhatsAppGroup } from '@/lib/whatsapp';
@@ -61,6 +61,22 @@ export async function POST(request: Request) {
       }
     }
 
+    // Check ingredient availability BEFORE placing order (soft warning, not blocking)
+    let stock_warnings: Array<{ ingredient_name: string; needed: number; available: number; unit: string }> = [];
+    try {
+      const availability = await checkIngredientAvailability(
+        items.map((i: { menu_item_id: number; quantity: number }) => ({
+          menu_item_id: i.menu_item_id,
+          quantity: i.quantity,
+        }))
+      );
+      if (!availability.available) {
+        stock_warnings = availability.shortages;
+      }
+    } catch (e) {
+      console.error('Stock check failed (non-blocking):', e);
+    }
+
     const order = await createOrder(items, 'offline', customer_whatsapp, customer_name);
 
     // Send push notification to kitchen (non-blocking)
@@ -86,7 +102,7 @@ export async function POST(request: Request) {
       }).catch(() => {});
     }
 
-    return NextResponse.json({ order }, { status: 201 });
+    return NextResponse.json({ order, stock_warnings }, { status: 201 });
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error('Error creating order:', errMsg, error);
