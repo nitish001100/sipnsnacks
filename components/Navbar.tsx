@@ -20,6 +20,10 @@ import {
   Globe,
   Warehouse,
   PackagePlus,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -48,9 +52,56 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [role, setRole] = useState('admin');
 
+  // Hide money state
+  const [moneyHidden, setMoneyHidden] = useState(true);
+  const [showPwModal, setShowPwModal] = useState(false);
+  const [pwInput, setPwInput] = useState('');
+  const [pwVerifying, setPwVerifying] = useState(false);
+
   useEffect(() => {
     setRole(getUserRole());
+    // Load hide money state from localStorage
+    const stored = localStorage.getItem('pos-hide-money');
+    setMoneyHidden(stored !== 'false');
   }, []);
+
+  const toggleMoney = () => {
+    if (moneyHidden) {
+      setShowPwModal(true);
+      setPwInput('');
+    } else {
+      setMoneyHidden(true);
+      localStorage.setItem('pos-hide-money', 'true');
+      window.dispatchEvent(new Event('storage'));
+      toast.success('₹ amounts hidden');
+    }
+  };
+
+  const handlePwUnlock = async () => {
+    if (!pwInput) return;
+    setPwVerifying(true);
+    try {
+      const res = await fetch('/api/settings/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwInput }),
+      });
+      if (res.ok) {
+        setMoneyHidden(false);
+        localStorage.setItem('pos-hide-money', 'false');
+        window.dispatchEvent(new Event('storage'));
+        setShowPwModal(false);
+        setPwInput('');
+        toast.success('₹ amounts visible');
+      } else {
+        toast.error('Wrong password');
+      }
+    } catch {
+      toast.error('Verification failed');
+    } finally {
+      setPwVerifying(false);
+    }
+  };
 
   const navItems = allNavItems.filter((item) => item.roles.includes(role));
 
@@ -123,6 +174,17 @@ export default function Navbar() {
         {role === 'admin' && (
           <div className="px-4 py-3 border-t border-[#2a4a5c] space-y-1">
             <p className="text-[10px] text-slate-500 uppercase tracking-wider px-4 mb-1">Actions</p>
+            <button
+              onClick={toggleMoney}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all w-full ${
+                moneyHidden
+                  ? 'text-slate-400 hover:bg-[#2a4a5c] hover:text-white'
+                  : 'text-emerald-400 hover:bg-emerald-600/10'
+              }`}
+            >
+              {moneyHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {moneyHidden ? '₹ Show Amounts' : '₹ Hide Amounts'}
+            </button>
             <button
               onClick={() => {
                 const today = format(new Date(), 'yyyy-MM-dd');
@@ -243,6 +305,48 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+
+      {/* Password Modal for Show Amounts */}
+      {showPwModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" onClick={() => setShowPwModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
+                <KeyRound className="w-7 h-7 text-amber-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">Show Amounts</h3>
+              <p className="text-sm text-gray-500 mt-1">Enter settlement password</p>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); handlePwUnlock(); }}>
+              <input
+                type="password"
+                value={pwInput}
+                onChange={(e) => setPwInput(e.target.value)}
+                placeholder="Settlement password"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none mb-4 text-gray-900"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowPwModal(false); setPwInput(''); }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={pwVerifying || !pwInput}
+                  className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {pwVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                  {pwVerifying ? 'Checking...' : 'Show ₹'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }
