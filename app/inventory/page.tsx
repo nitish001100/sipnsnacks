@@ -19,6 +19,7 @@ interface MenuItem { id: number; name: string; price: number; category: string; 
 
 interface Recipe {
   id: number; menu_item_id: number; ingredient_id: number; quantity_required: number;
+  recipe_unit?: string | null;
   ingredient_name?: string; ingredient_unit?: string; menu_item_name?: string;
 }
 
@@ -55,7 +56,7 @@ export default function InventoryPage() {
 
   // Recipe modal
   const [recipeModal, setRecipeModal] = useState<MenuItem | null>(null);
-  const [recipeIngredients, setRecipeIngredients] = useState<Array<{ ingredient_id: number; quantity_required: number }>>([]);
+  const [recipeIngredients, setRecipeIngredients] = useState<Array<{ ingredient_id: number; quantity_required: number; recipe_unit: string }>>([]);
 
   // Daily log date
   const { mask } = useHideMoney();
@@ -140,14 +141,37 @@ export default function InventoryPage() {
     } catch { toast.error('Failed to save recipe'); }
   };
 
+  // Get compatible unit options for recipe based on ingredient's stock unit
+  const getRecipeUnitOptions = (ingredientId: number): { value: string; label: string }[] => {
+    const ing = ingredients.find(i => i.id === ingredientId);
+    if (!ing) return [];
+    const u = ing.unit.toLowerCase();
+    const volumeUnits = [
+      { value: 'ml', label: 'ml' }, { value: 'liters', label: 'liters' },
+      { value: 'cups', label: 'cups' }, { value: 'tbsp', label: 'tbsp' }, { value: 'tsp', label: 'tsp' },
+    ];
+    const weightUnits = [
+      { value: 'grams', label: 'grams' }, { value: 'kg', label: 'kg' },
+    ];
+    const volumeSet = new Set(['ml', 'milliliters', 'liters', 'liter', 'l', 'cups', 'cup', 'tbsp', 'tablespoons', 'tsp', 'teaspoons']);
+    const weightSet = new Set(['grams', 'gm', 'g', 'kg', 'kilograms']);
+    if (volumeSet.has(u)) return volumeUnits;
+    if (weightSet.has(u)) return weightUnits;
+    return [{ value: ing.unit, label: ing.unit }];
+  };
+
   const openRecipeModal = async (menuItem: MenuItem) => {
     setRecipeModal(menuItem);
     try {
       const res = await fetch(`/api/inventory/recipes?menu_item_id=${menuItem.id}`);
       const data = await res.json();
-      const existing = (data.recipe || []).map((r: Recipe) => ({ ingredient_id: r.ingredient_id, quantity_required: r.quantity_required }));
-      setRecipeIngredients(existing.length > 0 ? existing : [{ ingredient_id: 0, quantity_required: 0 }]);
-    } catch { setRecipeIngredients([{ ingredient_id: 0, quantity_required: 0 }]); }
+      const existing = (data.recipe || []).map((r: Recipe) => ({
+        ingredient_id: r.ingredient_id,
+        quantity_required: r.quantity_required,
+        recipe_unit: r.recipe_unit || r.ingredient_unit || '',
+      }));
+      setRecipeIngredients(existing.length > 0 ? existing : [{ ingredient_id: 0, quantity_required: 0, recipe_unit: '' }]);
+    } catch { setRecipeIngredients([{ ingredient_id: 0, quantity_required: 0, recipe_unit: '' }]); }
   };
 
   const handleExportInventory = async () => {
@@ -353,7 +377,12 @@ export default function InventoryPage() {
                           <div className="space-y-1 mt-3">{itemRecipes.map(r => (
                             <div key={r.id} className="flex justify-between text-xs bg-gray-50 rounded px-2 py-1.5">
                               <span className="text-gray-700">{r.ingredient_name}</span>
-                              <span className="text-gray-500 font-mono">{r.quantity_required} {r.ingredient_unit}</span>
+                              <span className="text-gray-500 font-mono">
+                                {r.quantity_required} {r.recipe_unit || r.ingredient_unit}
+                                {r.recipe_unit && r.recipe_unit !== r.ingredient_unit && (
+                                  <span className="text-gray-400 ml-1">(stock: {r.ingredient_unit})</span>
+                                )}
+                              </span>
                             </div>
                           ))}</div>
                         ) : <p className="text-xs text-gray-400 mt-3 italic">No recipe configured</p>}
@@ -520,21 +549,47 @@ export default function InventoryPage() {
             <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <h2 className="text-lg font-bold mb-1">📋 Recipe: {recipeModal.name}</h2>
               <p className="text-sm text-gray-500 mb-4">Define ingredients needed per order. Auto-deducted when this item is ordered.</p>
-              <div className="space-y-2 mb-4">
-                {recipeIngredients.map((ri, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
-                    <select value={ri.ingredient_id} onChange={e => { const u = [...recipeIngredients]; u[idx].ingredient_id = Number(e.target.value); setRecipeIngredients(u); }}
-                      className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none">
-                      <option value={0}>Select ingredient...</option>
-                      {ingredients.map(ing => <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>)}
-                    </select>
-                    <input type="number" min="0.01" step="0.01" value={ri.quantity_required || ''} onChange={e => { const u = [...recipeIngredients]; u[idx].quantity_required = Number(e.target.value); setRecipeIngredients(u); }}
-                      placeholder="Qty" className="w-24 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
-                    <button onClick={() => setRecipeIngredients(recipeIngredients.filter((_, i) => i !== idx))} className="p-2 text-red-400 hover:text-red-600"><Minus className="w-4 h-4" /></button>
-                  </div>
-                ))}
+              <div className="space-y-3 mb-4">
+                {recipeIngredients.map((ri, idx) => {
+                  const unitOptions = ri.ingredient_id ? getRecipeUnitOptions(ri.ingredient_id) : [];
+                  const selectedIng = ingredients.find(i => i.id === ri.ingredient_id);
+                  return (
+                    <div key={idx} className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex gap-2 items-center">
+                        <select value={ri.ingredient_id} onChange={e => {
+                          const u = [...recipeIngredients];
+                          u[idx].ingredient_id = Number(e.target.value);
+                          // Auto-set recipe_unit to the ingredient's stock unit
+                          const ing = ingredients.find(i => i.id === Number(e.target.value));
+                          u[idx].recipe_unit = ing?.unit || '';
+                          setRecipeIngredients(u);
+                        }}
+                          className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none bg-white">
+                          <option value={0}>Select ingredient...</option>
+                          {ingredients.map(ing => <option key={ing.id} value={ing.id}>{ing.name} (stock: {ing.unit})</option>)}
+                        </select>
+                        <button onClick={() => setRecipeIngredients(recipeIngredients.filter((_, i) => i !== idx))} className="p-2 text-red-400 hover:text-red-600"><Minus className="w-4 h-4" /></button>
+                      </div>
+                      {ri.ingredient_id > 0 && (
+                        <div className="flex gap-2 items-center mt-2">
+                          <input type="number" min="0.01" step="0.01" value={ri.quantity_required || ''} onChange={e => { const u = [...recipeIngredients]; u[idx].quantity_required = Number(e.target.value); setRecipeIngredients(u); }}
+                            placeholder="Qty per order" className="w-28 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none bg-white" />
+                          {unitOptions.length > 1 ? (
+                            <select value={ri.recipe_unit || selectedIng?.unit || ''} onChange={e => { const u = [...recipeIngredients]; u[idx].recipe_unit = e.target.value; setRecipeIngredients(u); }}
+                              className="w-24 px-2 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none bg-white font-medium">
+                              {unitOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                          ) : (
+                            <span className="text-sm text-gray-500 font-medium px-2">{selectedIng?.unit || ''}</span>
+                          )}
+                          <span className="text-xs text-gray-400 ml-1">per order</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <button onClick={() => setRecipeIngredients([...recipeIngredients, { ingredient_id: 0, quantity_required: 0 }])}
+              <button onClick={() => setRecipeIngredients([...recipeIngredients, { ingredient_id: 0, quantity_required: 0, recipe_unit: '' }])}
                 className="text-sm text-amber-700 hover:text-amber-800 font-medium flex items-center gap-1 mb-4"><Plus className="w-4 h-4" /> Add Ingredient Row</button>
               <div className="flex gap-3">
                 <button onClick={() => setRecipeModal(null)} className="flex-1 py-2.5 border rounded-lg text-sm font-medium hover:bg-gray-50">Cancel</button>

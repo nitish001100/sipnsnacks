@@ -53,7 +53,11 @@ export async function POST(request: Request) {
       }
     }
 
-    await setMenuItemRecipe(menu_item_id, ingredients);
+    await setMenuItemRecipe(menu_item_id, ingredients.map((ing: { ingredient_id: number; quantity_required: number; recipe_unit?: string }) => ({
+      ingredient_id: ing.ingredient_id,
+      quantity_required: ing.quantity_required,
+      recipe_unit: ing.recipe_unit || undefined,
+    })));
     const recipe = await getMenuItemRecipe(menu_item_id);
 
     return NextResponse.json({ success: true, recipe });

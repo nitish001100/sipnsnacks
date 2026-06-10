@@ -488,7 +488,31 @@ export async function getLowStockIngredients(): Promise<Ingredient[]> {
 
 // ==================== RECIPES ====================
 
-export interface MenuItemIngredient { id: number; menu_item_id: number; ingredient_id: number; quantity_required: number; }
+export interface MenuItemIngredient { id: number; menu_item_id: number; ingredient_id: number; quantity_required: number; recipe_unit?: string | null; }
+
+// Unit conversion: converts a value from one unit to another
+// e.g., convertUnit(20, 'ml', 'liters') → 0.02
+export function convertUnit(value: number, fromUnit: string, toUnit: string): number {
+  if (!fromUnit || !toUnit) return value;
+  const from = fromUnit.toLowerCase().trim();
+  const to = toUnit.toLowerCase().trim();
+  if (from === to) return value;
+
+  // Normalize to base units (ml, grams)
+  const toMl: Record<string, number> = { ml: 1, milliliters: 1, liters: 1000, liter: 1000, l: 1000, cups: 240, cup: 240, tbsp: 15, tablespoons: 15, tsp: 5, teaspoons: 5 };
+  const toGm: Record<string, number> = { grams: 1, gm: 1, g: 1, kg: 1000, kilograms: 1000 };
+
+  // Volume conversions
+  if (toMl[from] !== undefined && toMl[to] !== undefined) {
+    return value * toMl[from] / toMl[to];
+  }
+  // Weight conversions
+  if (toGm[from] !== undefined && toGm[to] !== undefined) {
+    return value * toGm[from] / toGm[to];
+  }
+  // No conversion possible — return as-is
+  return value;
+}
 
 export async function getMenuItemRecipe(menuItemId: number): Promise<Array<MenuItemIngredient & { ingredient_name?: string; ingredient_unit?: string }>> {
   await ensureSchema();
@@ -499,12 +523,12 @@ export async function getMenuItemRecipe(menuItemId: number): Promise<Array<MenuI
   );
 }
 
-export async function setMenuItemRecipe(menuItemId: number, ingredients: Array<{ ingredient_id: number; quantity_required: number }>): Promise<void> {
+export async function setMenuItemRecipe(menuItemId: number, ingredients: Array<{ ingredient_id: number; quantity_required: number; recipe_unit?: string }>): Promise<void> {
   await ensureSchema();
   await query('DELETE FROM menu_item_ingredients WHERE menu_item_id=$1', [menuItemId]);
   for (const ing of ingredients) {
-    await query('INSERT INTO menu_item_ingredients (menu_item_id, ingredient_id, quantity_required) VALUES ($1,$2,$3)',
-      [menuItemId, ing.ingredient_id, ing.quantity_required]);
+    await query('INSERT INTO menu_item_ingredients (menu_item_id, ingredient_id, quantity_required, recipe_unit) VALUES ($1,$2,$3,$4)',
+      [menuItemId, ing.ingredient_id, ing.quantity_required, ing.recipe_unit || null]);
   }
 }
 
@@ -564,11 +588,20 @@ export async function deductIngredientsForOrder(
   const recipes = await queryAll<MenuItemIngredient>('SELECT * FROM menu_item_ingredients');
   if (recipes.length === 0) return;
 
+  // Load ingredients for unit conversion
+  const ingredients = await getIngredients();
+  const ingredientMap = new Map(ingredients.map(i => [i.id, i]));
+
   const deductions = new Map<number, { total: number; details: string[] }>();
   for (const oi of orderItems) {
     const itemRecipes = recipes.filter(r => r.menu_item_id === oi.menu_item_id);
     for (const recipe of itemRecipes) {
-      const qty = Number(recipe.quantity_required) * oi.quantity;
+      let qty = Number(recipe.quantity_required) * oi.quantity;
+      // Convert recipe_unit → ingredient unit if different
+      const ing = ingredientMap.get(recipe.ingredient_id);
+      if (recipe.recipe_unit && ing) {
+        qty = convertUnit(qty, recipe.recipe_unit, ing.unit);
+      }
       const existing = deductions.get(recipe.ingredient_id) || { total: 0, details: [] };
       existing.total += qty;
       existing.details.push(`${oi.item_name} x${oi.quantity}`);
@@ -599,7 +632,13 @@ export async function checkIngredientAvailability(
 
   for (const item of items) {
     for (const r of recipes.filter(r => r.menu_item_id === item.menu_item_id)) {
-      needs.set(r.ingredient_id, (needs.get(r.ingredient_id) || 0) + Number(r.quantity_required) * item.quantity);
+      let qty = Number(r.quantity_required) * item.quantity;
+      // Convert recipe_unit → ingredient unit if different
+      const ing = ingredientMap.get(r.ingredient_id);
+      if (r.recipe_unit && ing) {
+        qty = convertUnit(qty, r.recipe_unit, ing.unit);
+      }
+      needs.set(r.ingredient_id, (needs.get(r.ingredient_id) || 0) + qty);
     }
   }
 

@@ -172,6 +172,7 @@ export async function initSchema(): Promise<void> {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_whatsapp VARCHAR(20);
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_name VARCHAR(255);
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_address TEXT;
+      ALTER TABLE menu_item_ingredients ADD COLUMN IF NOT EXISTS recipe_unit VARCHAR(20);
     EXCEPTION WHEN OTHERS THEN NULL;
     END $$;
   `);
