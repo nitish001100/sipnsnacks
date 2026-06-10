@@ -19,6 +19,7 @@ import {
   Package,
   Globe,
   Warehouse,
+  PackagePlus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -29,7 +30,8 @@ const allNavItems = [
   { href: '/menu/manage', label: 'Menu Manage', icon: UtensilsCrossed, roles: ['admin'], exact: false },
   { href: '/checkout', label: 'Checkout', icon: ShoppingCart, roles: ['admin'], exact: false },
   { href: '/kitchen', label: 'Kitchen', icon: ChefHat, roles: ['admin', 'chef'], exact: false },
-  { href: '/inventory', label: 'Inventory', icon: Warehouse, roles: ['admin'], exact: false },
+  { href: '/inventory', label: 'Inventory', icon: Warehouse, roles: ['admin'], exact: true },
+  { href: '/inventory/restock', label: 'Stock Add Up', icon: PackagePlus, roles: ['admin'], exact: false },
   { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'], exact: false },
   { href: '/menu', label: 'Public Menu', icon: Globe, roles: ['admin'], exact: true },
 ];

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSetting, setSetting } from '@/lib/db';
-import { getAuthFromCookies } from '@/lib/auth';
+import { getAuthFromHeaders } from '@/lib/auth';
 
 // Default hours: 10:30 AM - 9:45 PM IST
 const DEFAULTS = { open: '10:30', close: '21:45', forced_closed: false };
@@ -24,25 +24,13 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  // Try cookies first (Next.js built-in), then headers
-  let auth = getAuthFromCookies();
-  if (!auth) {
-    // Fallback: parse from request headers
-    const cookieHeader = request.headers.get('cookie');
-    if (cookieHeader) {
-      const tokenMatch = cookieHeader.match(/pos-auth-token=([^;]+)/);
-      if (tokenMatch) {
-        const { verifyToken } = await import('@/lib/auth');
-        auth = verifyToken(tokenMatch[1]);
-      }
-    }
-  }
-  
-  if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    // Use header-based auth (robust across all Next.js runtime contexts)
+    const auth = getAuthFromHeaders(request);
+    if (!auth) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { open_time, close_time, forced_closed } = body;
 
