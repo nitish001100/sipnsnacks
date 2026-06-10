@@ -191,7 +191,8 @@ export default function InventoryPage() {
 
   const lowStock = ingredients.filter(i => i.minimum_quantity > 0 && i.current_quantity <= i.minimum_quantity);
   const outOfStock = ingredients.filter(i => i.current_quantity <= 0);
-  const totalValue = ingredients.reduce((s, i) => s + i.current_quantity * i.unit_cost, 0);
+  // unit_cost = total purchase price for the ingredient (not per-unit)
+  const totalValue = ingredients.reduce((s, i) => s + i.unit_cost, 0);
   const filteredIngredients = ingredients.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
 
   // Daily log: group transactions by date
@@ -317,7 +318,7 @@ export default function InventoryPage() {
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h3 className="font-semibold text-gray-800">{ing.name}</h3>
-                            <p className="text-xs text-gray-500">Unit: {ing.unit} · Cost: {mask(ing.unit_cost)}/{ing.unit}</p>
+                            <p className="text-xs text-gray-500">Unit: {ing.unit} · Purchase: {mask(ing.unit_cost)}</p>
                           </div>
                           <div className="flex gap-1">
                             <button onClick={() => { setEditModal(ing); setEditData({ name: ing.name, unit: ing.unit, current_quantity: ing.current_quantity, minimum_quantity: ing.minimum_quantity, unit_cost: ing.unit_cost }); }} className="text-gray-400 hover:text-blue-500"><Edit2 className="w-4 h-4" /></button>
@@ -331,7 +332,7 @@ export default function InventoryPage() {
                               Min: {ing.minimum_quantity} {ing.unit}
                               {isLow && <span className="text-red-500 font-semibold ml-1">⚠ LOW</span>}
                             </p>
-                            <p className="text-xs text-gray-400 mt-0.5">Value: {mask(Math.round(ing.current_quantity * ing.unit_cost))}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">Bought at: {mask(Math.round(ing.unit_cost))}</p>
                           </div>
                           <div className="flex gap-1">
                             <button onClick={() => { setStockModal({ ingredient: ing, type: 'add' }); setStockQty(0); }}
@@ -485,7 +486,7 @@ export default function InventoryPage() {
                 <div className="grid grid-cols-3 gap-3">
                   <div><label className="text-xs font-medium text-gray-600">Stock</label><input type="number" min="0" value={newIngredient.current_quantity} onChange={e => setNewIngredient(p => ({ ...p, current_quantity: Number(e.target.value) }))} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" /></div>
                   <div><label className="text-xs font-medium text-gray-600">Min Qty</label><input type="number" min="0" value={newIngredient.minimum_quantity} onChange={e => setNewIngredient(p => ({ ...p, minimum_quantity: Number(e.target.value) }))} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" /></div>
-                  <div><label className="text-xs font-medium text-gray-600">Cost (₹)</label><input type="number" min="0" step="0.01" value={newIngredient.unit_cost} onChange={e => setNewIngredient(p => ({ ...p, unit_cost: Number(e.target.value) }))} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" /></div>
+                  <div><label className="text-xs font-medium text-gray-600">Price (₹)</label><input type="number" min="0" step="0.01" value={newIngredient.unit_cost} onChange={e => setNewIngredient(p => ({ ...p, unit_cost: Number(e.target.value) }))} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" /></div>
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
@@ -511,7 +512,7 @@ export default function InventoryPage() {
                 <div className="grid grid-cols-3 gap-3">
                   <div><label className="text-xs font-medium text-gray-600">Stock</label><input type="number" min="0" value={editData.current_quantity} onChange={e => setEditData(p => ({ ...p, current_quantity: Number(e.target.value) }))} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" /></div>
                   <div><label className="text-xs font-medium text-gray-600">Min Qty</label><input type="number" min="0" value={editData.minimum_quantity} onChange={e => setEditData(p => ({ ...p, minimum_quantity: Number(e.target.value) }))} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" /></div>
-                  <div><label className="text-xs font-medium text-gray-600">Cost (₹)</label><input type="number" min="0" step="0.01" value={editData.unit_cost} onChange={e => setEditData(p => ({ ...p, unit_cost: Number(e.target.value) }))} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" /></div>
+                  <div><label className="text-xs font-medium text-gray-600">Price (₹)</label><input type="number" min="0" step="0.01" value={editData.unit_cost} onChange={e => setEditData(p => ({ ...p, unit_cost: Number(e.target.value) }))} className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" /></div>
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
